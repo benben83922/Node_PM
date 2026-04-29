@@ -55,7 +55,7 @@ WBS 文件是現有 `phase` 追蹤的**向下展開層**，兩者分工明確：
 
 ### 2.2 YAML Frontmatter 欄位
 
-WBS 文件使用現有核心 7 欄位，加上 3 個 WBS 專用欄位：
+WBS 文件使用現有 8 個核心欄位，加上 3 個 WBS 專用欄位：
 
 ```yaml
 ---
@@ -70,15 +70,17 @@ tags: [wbs]
 # WBS 專用欄位
 total_tasks: 24          # 子任務總數（手動填寫，用於快速索引）
 module_count: 5          # 模組數量
-team:                    # 角色 → 姓名對照表
-  PM: 王小明
-  TL: 李技術
-  BE: 張後端
-  FE: 陳前端
+team:                    # 角色 → {name, email}（email 供 GitHub Actions 查找）
+  PM: {name: 王小明, email: pm@example.com}
+  TL: {name: 李技術, email: tl@example.com}
+  BE: {name: 張後端, email: be@example.com}
+  FE: {name: 陳前端, email: fe@example.com}
 ---
 ```
 
-> `total_tasks` 與 `module_count` 為人工維護的索引欄位，供 Dataview 快速聚合用；實際完成率由 Dataview TASK 查詢動態計算。
+> `total_tasks` 與 `module_count` 為人工維護的索引欄位；實際完成率由 Web App 從 `tasks_sync` 動態計算。
+>
+> **`phase` 欄位說明**：WBS 的 `phase` 代表**整個專案目前所處的宏觀階段**（planning / dev / testing / done / blocked），由 PM 在專案推進時手動更新。詳細任務層級的進度從 WBS 內文的 `- [ ]` 清單讀取，透過 GitHub Actions 寫入 Supabase `tasks_sync`，並同步更新 `projects.current_phase`。
 
 ### 2.3 WBS 文件結構模板
 
@@ -95,25 +97,36 @@ tags: [wbs]
 total_tasks: 0
 module_count: 0
 team:
-  PM: 王小明
-  TL: 李技術
-  BE: 張後端
-  FE: 陳前端
+  PM: {name: 王小明, email: pm@example.com}
+  TL: {name: 李技術, email: tl@example.com}
+  BE: {name: 張後端, email: be@example.com}
+  FE: {name: 陳前端, email: fe@example.com}
 ---
 
 # {ProjectName} WBS
+
+## 里程碑 (Milestones)
+
+| ID | 里程碑名稱 | 計畫完成日 | 實際完成日 | 狀態 |
+| :--- | :--- | :--- | :--- | :--- |
+| M1 | 基礎架構建立 | 2026-05-10 | | 進行中 |
+| M2 | MVP 上線 | 2026-05-24 | | 未開始 |
+
+> 此表格由 GitHub Actions 解析並寫入 Supabase `milestones` 表。狀態值為「完成」時 `is_completed = true`，其餘皆為 `false`。
+
+---
 
 ## M1｜{模組名稱}
 
 ### M1.1 {子模組名稱}
 
-- [ ] M1.1.1 {任務描述} @PM:王小明 #2026-05-01
-- [ ] M1.1.2 {任務描述} @BE:張後端 #2026-05-07
-- [x] M1.1.3 {已完成任務} @TL:李技術
+- [ ] M1.1.1 {任務描述} [owner:: PM:王小明] #2026-05-01
+- [ ] M1.1.2 {任務描述} [owner:: BE:張後端] #2026-05-07
+- [x] M1.1.3 {已完成任務} [owner:: TL:李技術]
 
 ### M1.2 {子模組名稱}
 
-- [ ] M1.2.1 {任務描述} @FE:陳前端 #2026-05-10
+- [ ] M1.2.1 {任務描述} [owner:: FE:陳前端] #2026-05-10
 
 ---
 
@@ -121,8 +134,8 @@ team:
 
 ### M2.1 {子模組名稱}
 
-- [ ] M2.1.1 {任務描述} @BE:張後端 #2026-05-14
-- [ ] M2.1.2 {任務描述} @BE:張後端
+- [ ] M2.1.1 {任務描述} [owner:: BE:張後端] #2026-05-14
+- [ ] M2.1.2 {任務描述} [owner:: BE:張後端]
 ```
 
 ---
@@ -132,8 +145,8 @@ team:
 ### 3.1 基本語法
 
 ```
-- [ ] {任務 ID} {任務描述} @{角色}:{姓名} #{deadline}
-- [x] {任務 ID} {任務描述} @{角色}:{姓名}    ← 已完成
+- [ ] {任務 ID} {任務描述} [owner:: {角色}:{姓名}] #{deadline}
+- [x] {任務 ID} {任務描述} [owner:: {角色}:{姓名}]    ← 已完成
 ```
 
 ### 3.2 欄位說明
@@ -142,10 +155,10 @@ team:
 | :--- | :--- | :--- | :--- |
 | **任務 ID** | `M{模組}.{子模組}.{序號}` | 是 | 例：`M3.2.1`，便於追蹤與引用 |
 | **任務描述** | 自然語言 | 是 | 一行描述，動詞開頭（設計、實作、測試、審核） |
-| **owner** | `@{角色}:{姓名}` | 是 | 角色縮寫 + 冒號 + 真實姓名，例：`@BE:張後端` |
+| **owner** | `[owner:: {角色}:{姓名}]` | 是 | Dataview inline metadata 格式，例：`[owner:: BE:張後端]` |
 | **deadline** | `#YYYY-MM-DD` | 建議填 | 截止日期，供 overdue 查詢使用 |
 
-> 角色與姓名的完整對照表定義於 frontmatter 的 `team` 欄位，任務行的 `@角色:姓名` 須與之一致。
+> 角色與姓名的完整對照表定義於 frontmatter 的 `team` 欄位，任務行的 `[owner:: 角色:姓名]` 須與之一致。採用 Dataview inline metadata 格式，Dataview 可直接解析並按負責人分組查詢。
 
 ### 3.3 完整範例
 
@@ -154,26 +167,26 @@ team:
 
 ### M3.1 第三方金流串接
 
-- [x] M3.1.1 評估金流服務商（綠界 vs. 藍新） @PM:王小明 #2026-04-20
-- [x] M3.1.2 建立測試商戶帳號 @BE:張後端 #2026-04-22
-- [ ] M3.1.3 實作付款 API 串接 @BE:張後端 #2026-05-10
-- [ ] M3.1.4 實作退款 API 串接 @BE:張後端 #2026-05-17
-- [ ] M3.1.5 金流沙盒環境測試 @BE:張後端 #2026-05-20
+- [x] M3.1.1 評估金流服務商（綠界 vs. 藍新） [owner:: PM:王小明] #2026-04-20
+- [x] M3.1.2 建立測試商戶帳號 [owner:: BE:張後端] #2026-04-22
+- [ ] M3.1.3 實作付款 API 串接 [owner:: BE:張後端] #2026-05-10
+- [ ] M3.1.4 實作退款 API 串接 [owner:: BE:張後端] #2026-05-17
+- [ ] M3.1.5 金流沙盒環境測試 [owner:: BE:張後端] #2026-05-20
 
 ### M3.2 訂單狀態機
 
-- [ ] M3.2.1 設計訂單狀態轉換圖 @TL:李技術 #2026-04-30
-- [ ] M3.2.2 實作狀態機邏輯 @BE:張後端 #2026-05-12
-- [ ] M3.2.3 撰寫狀態轉換單元測試 @BE:張後端 #2026-05-14
+- [ ] M3.2.1 設計訂單狀態轉換圖 [owner:: TL:李技術] #2026-04-30
+- [ ] M3.2.2 實作狀態機邏輯 [owner:: BE:張後端] #2026-05-12
+- [ ] M3.2.3 撰寫狀態轉換單元測試 [owner:: BE:張後端] #2026-05-14
 ```
 
 ---
 
 ## 四、Dataview 整合設計
 
-### 4.1 WBS 儀表板查詢（加入 `_Index.md`）
+### 4.1 WBS 儀表板查詢（個別專案儀表板）
 
-在主儀表板 `_Index.md` 新增以下區塊：
+在各專案個別儀表板（`_Dashboard.md`）可加入以下區塊，供 Obsidian 本地查看 WBS 文件狀態（全專案進度儀表板由 Web App 提供）：
 
 ````markdown
 ## 📋 WBS 任務進度總覽
@@ -214,7 +227,7 @@ SORT due ASC
 TASK
 FROM "_Projects"
 WHERE !completed
-GROUP BY text.split("@")[1].split(" ")[0]
+GROUP BY owner
 SORT due ASC
 ```
 ````
@@ -238,9 +251,7 @@ SORT completed ASC, due ASC
 | 列出所有未完成任務 | ✅ 原生支援 | `TASK WHERE !completed` |
 | 按 due date 過濾 | ✅ 支援 `due` 欄位 | 需用 `#YYYY-MM-DD` 格式，Dataview 可自動識別 |
 | 計算完成率百分比 | ⚠️ 需用 DQL 計算 | `length(filter(tasks, (t) => t.completed)) / length(tasks)` |
-| 按 owner 分組 | ⚠️ 需解析 `@` 文字 | Dataview 無法直接解析 inline `@owner`，需用正規表達式或改以 metadata 格式 |
-
-> **說明**：若 owner 分組查詢不穩定，可改用 Dataview inline metadata 格式：`[owner:: BE]`，放在任務行尾，Dataview 可直接解析為欄位。
+| 按 owner 分組 | ✅ 原生支援 | 任務行採用 `[owner:: BE:張後端]` inline metadata，Dataview 直接以 `GROUP BY owner` 查詢 |
 
 ---
 
@@ -257,21 +268,21 @@ kanban-plugin: basic
 
 ## 待開始
 
-- [ ] M1.1.2 建立測試商戶帳號 @BE #2026-04-22
-- [ ] M3.2.1 設計訂單狀態轉換圖 @TL #2026-04-30
+- [ ] M1.1.2 建立測試商戶帳號 [owner:: BE:張後端] #2026-04-22
+- [ ] M3.2.1 設計訂單狀態轉換圖 [owner:: TL:李技術] #2026-04-30
 
 ## 進行中
 
-- [ ] M3.1.3 實作付款 API 串接 @BE #2026-05-10
+- [ ] M3.1.3 實作付款 API 串接 [owner:: BE:張後端] #2026-05-10
 
 ## 審核中
 
-- [ ] M2.1.1 PRD 文件審核 @PM #2026-04-28
+- [ ] M2.1.1 PRD 文件審核 [owner:: PM:王小明] #2026-04-28
 
 ## 完成
 
-- [x] M3.1.1 評估金流服務商 @PM
-- [x] M3.1.2 建立測試商戶帳號 @BE
+- [x] M3.1.1 評估金流服務商 [owner:: PM:王小明]
+- [x] M3.1.2 建立測試商戶帳號 [owner:: BE:張後端]
 ```
 
 ### 5.2 Kanban 與 WBS 的同步原則
@@ -296,7 +307,7 @@ kanban-plugin: basic
 | :--- | :--- | :--- |
 | 「X 專案的 WBS 還剩幾個任務？」 | WBS.md 的 `- [ ]` 數量 | 數字 + 列出未完成任務 |
 | 「金流模組哪些任務已完成？」 | WBS.md M{金流模組} 的 `- [x]` | 條列已完成任務 |
-| 「有哪些任務是張後端負責的？」 | 所有 WBS.md 中含 `@BE:張後端` 的任務行 | 按專案分組列出 |
+| 「有哪些任務是張後端負責的？」 | 所有 WBS.md 中含 `[owner:: BE:張後端]` 的任務行 | 按專案分組列出 |
 | 「這週有哪些任務的 deadline 到期？」 | WBS.md 中 `#YYYY-MM-DD` 落在本週的任務 | 條列 + 負責人 |
 | 「哪個模組的任務最多還沒完成？」 | WBS.md 各模組的 `- [ ]` 統計 | 排名 + 數量 |
 
@@ -309,7 +320,7 @@ WBS 任務格式：
 - 未完成任務以 "- [ ]" 開頭
 - 已完成任務以 "- [x]" 開頭
 - 任務 ID 格式：M{模組}.{子模組}.{序號}（例：M3.1.2）
-- 負責人以 @角色 標記（@PM / @BE / @FE / @TL）
+- 負責人以 [owner:: 角色:姓名] 格式標記（例：[owner:: BE:張後端] / [owner:: PM:王小明]）
 - 截止日期以 #YYYY-MM-DD 標記
 
 回答任務進度問題時，請同時提供：完成數/總數、最近到期的未完成任務。
@@ -319,17 +330,17 @@ WBS 任務格式：
 
 ## 七、與現有系統的整合點
 
-### 7.1 對 `_Index.md` 的修改
+### 7.1 對個別專案儀表板的修改
 
-在主儀表板加入第四節「WBS 任務進度總覽」區塊（見第四節查詢）。
+在各專案個別儀表板（`_Dashboard.md`）加入第四節「WBS 任務進度總覽」區塊（見 4.1 查詢）。全專案進度追蹤由 Web App 負責。
 
-### 7.2 對 `_Risk_Board.md` 的修改
+### 7.2 Web App Overdue 任務
 
-加入 Overdue 任務區塊（見 4.2 查詢），使風險看板同時涵蓋文件層風險與任務層風險。
+Overdue 任務（`deadline < today AND status != 'Done'`）由 Web App 從 Supabase `tasks_sync` 查詢後在 PM 診斷頁面呈現，不再依賴 Obsidian 的 `_Risk_Board.md`。
 
 ### 7.3 對 YAML Frontmatter 規範的修改
 
-在 `doc_type` 值域新增 `WBS` 為合法值（原有：`PRD / ERD / Architecture / API`），並說明 WBS 文件的兩個新增欄位 `total_tasks` 與 `module_count`。
+`WBS` 已包含在 `doc_type` 合法值域中（詳見文件規範_YAML設計規格書.md）。確認 WBS 文件的三個專用欄位 `total_tasks`、`module_count`、`team` 已正確填入。
 
 ---
 
@@ -338,13 +349,13 @@ WBS 任務格式：
 | 步驟 | 工作項目 | 驗收標準 |
 | :--- | :--- | :--- |
 | **Step 1** | 為現有專案建立 `WBS.md`，填入 frontmatter 與任務清單 | 至少一個專案有完整 WBS.md |
-| **Step 2** | 在 `_Index.md` 加入 WBS 總覽 Dataview 查詢 | 查詢能正確渲染 WBS 文件清單 |
-| **Step 3** | 在 `_Risk_Board.md` 加入 Overdue 任務查詢 | Overdue 任務能正確顯示 |
+| **Step 2** | 在各專案 `_Dashboard.md` 加入 WBS 總覽 Dataview 查詢 | 查詢能正確渲染 WBS 文件清單 |
+| **Step 3** | 確認 GitHub Actions 成功將 WBS 任務寫入 Supabase `tasks_sync` | push 後 ≤ 2 分鐘 Supabase 資料更新 |
 | **Step 4** | 建立 `Kanban.md`，將高優先任務放入看板 | Kanban Plugin 正確渲染欄位 |
 | **Step 5** | 更新 OpenClaw System Prompt，測試 WBS 問題集 | 5 題測試問題全數回答正確 |
 
 ---
 
-**文件版本**：v1.0
-**最後更新**：2026-04-25
+**文件版本**：v1.1
+**最後更新**：2026-04-29
 **狀態**：草稿（Draft）

@@ -2,8 +2,8 @@
 
 ---
 
-**文件版本 (Document Version):** `v1.0`
-**最後更新 (Last Updated):** `2026-04-25`
+**文件版本 (Document Version):** `v1.1`
+**最後更新 (Last Updated):** `2026-04-29`
 **主要作者 (Lead Author):** `PM`
 **審核者 (Reviewers):** `技術負責人`
 **狀態 (Status):** `草稿 (Draft)`
@@ -28,7 +28,7 @@
 
 ---
 
-**目的**：本文件將「本地端個人 PM 系統」的業務需求轉化為完整技術藍圖，涵蓋系統各層次架構設計，作為五個功能模組（Frontmatter 規範、GitHub 同步、Obsidian 儀表板、OpenClaw 查詢層、WBS 進度控管）的實作依據。
+**目的**：本文件將「本地端個人 PM 系統」的業務需求轉化為完整技術藍圖，涵蓋系統各層次架構設計，作為七個功能模組（Frontmatter 規範、GitHub 同步、Obsidian 知識庫、OpenClaw 查詢層、WBS 進度控管、GitHub Actions 資料管道、Web App 團隊儀表板）的實作依據。
 
 ---
 
@@ -40,53 +40,70 @@
 
 ```mermaid
 graph TB
-    PM[👤 PM\n個人使用者]
+    PM[👤 PM\n文件作者 + 查詢者]
+    ENG[👤 工程師\n文件協作者]
+    CLIENT[👤 客戶\n進度查看者]
     CC[Claude Code\n文件產出工具]
-    GH[GitHub\n版本控制]
-    OB[Obsidian\n本地可視化儀表板]
+    GH[GitHub\n版本控制 + Actions]
+    OB[Obsidian\nPM 個人知識庫]
     OC[OpenClaw\n自然語言查詢]
+    SB[Supabase\n雲端進度資料庫]
+    WEB[Web App\n團隊進度儀表板]
 
     PM -->|指示產出文件| CC
     CC -->|git push .md 含 Frontmatter| GH
-    GH -->|Cron Pull 每 1 分鐘| OB
-    PM -->|查看儀表板| OB
+    ENG -->|更新文件 git push| GH
+    GH -->|Obsidian Git 每 1 分鐘 pull| OB
+    GH -->|Actions 解析 _Projects/*.md| SB
+    PM -->|個人知識庫查閱| OB
     PM -->|口語提問| OC
-    OC -->|讀取 Vault 目錄| OB
+    OC -->|讀取整個 Vault| OB
+    PM -->|查看專案儀表板| WEB
+    ENG -->|查看個人待辦| WEB
+    CLIENT -->|查看交付進度| WEB
+    SB -->|即時資料| WEB
 ```
 
-> PM 是唯一使用者。Claude Code 負責產出，GitHub 負責版控，Obsidian 負責本地渲染，OpenClaw 負責自然語言查詢。四個工具之間沒有直接雙向通信，資料流為單向。
+> PM 透過 Claude Code 產出文件；GitHub 同時服務兩條路：(1) 同步到本地 Obsidian 供 PM 個人閱讀，(2) 觸發 Actions 將進度寫入 Supabase 供 Web App 呈現給三種角色。
 
 #### L2 - 容器圖 (Container Diagram)
 
 ```mermaid
 graph TB
-    subgraph 本地檔案系統
-        VAULT[ObsidianVault\n~/ObsidianVault/_Projects/\n各專案 .md 文件]
-        SCRIPT[sync_vault.sh\n同步腳本]
+    subgraph 本地端（PM 機器）
+        VAULT[ObsidianVault\n~/ObsidianVault/\n_Projects/ + 知識文件]
     end
 
     subgraph Obsidian 應用
-        DV[Dataview Plugin\nSQL-like 查詢 Frontmatter]
+        DV[Dataview Plugin\n結構化查詢 Frontmatter]
         KB[Kanban Plugin\n任務看板]
         TPL[Templater Plugin\n自動帶入 Frontmatter]
-        IDX[_Index.md\n主儀表板]
-        RSK[_Risk_Board.md\n風險看板]
+        GIT[Obsidian Git Plugin\n每 1 分鐘 auto pull]
     end
 
-    subgraph 外部系統
-        GH[GitHub Repos\n各專案 .md 文件來源]
-        OC[OpenClaw\n自然語言查詢引擎]
-        CRON[crontab\n每 1 分鐘觸發]
+    subgraph GitHub
+        REPO[GitHub Repos\n_Projects/*.md]
+        GA[GitHub Actions\nsync_to_supabase.yml]
+        SCRIPT[Python Script\nsync_to_supabase.py]
     end
 
-    CRON -->|觸發| SCRIPT
-    SCRIPT -->|git pull| GH
-    SCRIPT -->|更新| VAULT
+    subgraph 雲端
+        SB[Supabase\nprojects / tasks_sync\nmilestones / project_access]
+        WEB[Web App React\nVercel 部署]
+    end
+
+    OC[OpenClaw\n自然語言查詢引擎]
+
+    GIT -->|git pull| REPO
+    GIT -->|更新| VAULT
     VAULT -->|讀取| DV
-    DV -->|渲染| IDX
-    DV -->|渲染| RSK
     VAULT -->|讀取任務| KB
-    OC -->|掃描| VAULT
+    OC -->|掃描整個 Vault| VAULT
+    REPO -->|push 觸發| GA
+    GA -->|執行| SCRIPT
+    SCRIPT -->|解析 YAML + WBS + 里程碑| SCRIPT
+    SCRIPT -->|service_role upsert| SB
+    SB -->|anon key + RLS| WEB
 ```
 
 #### L3 - 元件圖（資料流向）
@@ -116,34 +133,39 @@ graph LR
 
 | 術語 | 定義 |
 | :--- | :--- |
-| **Vault** | Obsidian 管理的本地目錄（`~/ObsidianVault/`），包含所有專案 `.md` 文件 |
+| **Vault** | Obsidian 管理的本地目錄（`~/ObsidianVault/`），包含所有專案 `.md` 文件與知識文件 |
 | **Frontmatter** | `.md` 文件頂部的 YAML 區塊，記錄文件的機器可讀 metadata |
 | **doc_type** | 文件類型分類（`PRD / ERD / Architecture / WBS / API`） |
-| **phase** | 專案執行階段（`planning / dev / testing / done / blocked`） |
-| **WBS 任務** | WBS.md 中以 `- [ ]` / `- [x]` 格式記錄的子任務 |
+| **phase** | WBS 文件中代表**整個專案的宏觀階段**（`planning / dev / testing / done / blocked`） |
+| **WBS 任務** | WBS.md 中以 `- [ ]` / `- [x]` 格式記錄的子任務，owner 以 `[owner:: BE:張後端]` 格式標記 |
 | **Dataview 查詢** | 在 `.md` 文件中使用 Dataview Plugin 的 DQL 語法動態渲染視圖 |
-| **Cron Pull** | 本地定時腳本，每 1 分鐘執行 `git pull`，將 GitHub 最新文件同步到 Vault |
-| **Single Source of Truth** | 本系統中指本地 `.md` 文件，所有視圖均由此派生，不允許在視圖工具內直接輸入資料 |
+| **Obsidian Git Plugin** | Obsidian 社群外掛，設定 auto pull interval 為 1 分鐘，全體成員無需 Terminal 即可同步 |
+| **GitHub Actions** | 偵測 `_Projects/**/*.md` 變更後觸發 Python 腳本解析並寫入 Supabase 的自動化管道 |
+| **Supabase** | 雲端 PostgreSQL 服務，作為結構化進度資料庫，啟用 RLS 控制存取權限 |
+| **RBAC** | 基於角色的存取控制（Admin/Developer/Viewer），透過 Supabase `project_access` 表實現 |
+| **tasks_sync** | Supabase 中儲存 WBS 任務的同步表，由 GitHub Actions 寫入，Web App 只讀 |
+| **Single Source of Truth** | 本系統中指本地 `.md` 文件，所有衍生視圖（Obsidian、Supabase、Web App）均由此派生 |
 
 ---
 
 ### 1.3 架構分層
 
-本系統採用**三層本地優先架構**，取代傳統的後端/前端分離模式：
+本系統採用**四層混合架構**：本地文件為唯一寫入源，派生出本地知識庫（Obsidian）與雲端進度資料庫（Supabase）兩條獨立路徑：
 
 | 層次 | 對應元件 | 職責 |
 | :--- | :--- | :--- |
-| **資料層** | `.md` 文件 + YAML Frontmatter | 唯一資料源，同時服務人類閱讀與機器查詢 |
-| **同步層** | `sync_vault.sh` + crontab | 確保資料層與 GitHub 保持一致，延遲 ≤ 1 分鐘 |
-| **渲染/查詢層** | Obsidian（Dataview/Kanban）+ OpenClaw | 從資料層派生視圖與回答，不儲存任何狀態 |
+| **資料層** | `.md` 文件 + YAML Frontmatter | 唯一寫入源，同時服務人類閱讀與機器解析 |
+| **本地同步層** | Obsidian Git Plugin（auto pull 1分鐘） | 將 GitHub 最新文件同步到本地 Vault |
+| **雲端資料層** | GitHub Actions + Supabase | 解析 WBS 任務/里程碑寫入雲端結構化資料庫 |
+| **呈現層** | Obsidian（個人）+ OpenClaw（查詢）+ Web App（團隊） | 從資料層派生視圖，各層對資料層只讀 |
 
-設計原則：**渲染/查詢層對資料層只讀**，所有寫入均透過 Claude Code → git push 進行。
+設計原則：**所有寫入均透過 Claude Code → git push 進行**；Supabase 和 Obsidian 都是衍生資料，`.md` 文件永遠是最終依據。
 
 ---
 
 ### 1.4 技術選型與決策記錄 (ADR)
 
-#### ADR-001：Obsidian 作為儀表板層
+#### ADR-001：Obsidian 作為個人知識庫層
 
 **狀態**：已決定
 
@@ -172,19 +194,52 @@ graph LR
 | 面向 | 說明 |
 | :--- | :--- |
 | **問題** | 決定 frontmatter 欄位組成，平衡查詢彈性與維護成本 |
-| **決策** | 7 個核心欄位 + `tags`（選填）+ WBS 專用欄位（`total_tasks` / `module_count` / `team`） |
+| **決策** | 8 個核心欄位（`project / doc_type / status / phase / priority / owner / updated / tags`）+ WBS 專用欄位（`total_tasks` / `module_count` / `team`） |
 | **排除** | `deadline`（放正文，由 OpenClaw 讀取）；`milestone`（粒度太細，屬 WBS 內容） |
 
-#### ADR-004：Cron Pull 優先於 GitHub Webhook
+#### ADR-004：Obsidian Git 外掛作為同步機制
 
 **狀態**：已決定
 
 | 面向 | 說明 |
 | :--- | :--- |
-| **問題** | 選擇 GitHub → Obsidian 的同步觸發機制 |
-| **決策** | 本地 Cron Pull，每 1 分鐘執行 `git pull` |
-| **理由** | 實作簡單；本地端主控；不需設定 ngrok 或本地 HTTP server |
-| **取捨** | 最大延遲 1 分鐘（可接受）；Cron 靜默失敗需 log 監控 |
+| **問題** | 選擇 GitHub → Obsidian 的同步觸發機制，且需支援全體團隊成員 |
+| **決策** | 採用 Obsidian Git 外掛，設定 Auto pull interval 為 1 分鐘 |
+| **理由** | 無需 Terminal 或額外腳本；跨平台（Mac/Windows/Linux）；適合非技術成員；push 前自動 merge 降低衝突風險 |
+| **取捨** | Obsidian 需保持開啟才能自動同步；開啟時會立即補齊離線期間的更新 |
+
+#### ADR-005：Supabase 作為雲端進度資料庫
+
+**狀態**：已決定
+
+| 面向 | 說明 |
+| :--- | :--- |
+| **問題** | 需要一個能讓 Web App 讀取結構化進度資料的後端，且要支援 RBAC 與即時更新 |
+| **決策** | 採用 Supabase（managed PostgreSQL），啟用 Row Level Security |
+| **理由** | 零維護後端；內建 Auth + RLS；Supabase Realtime 支援 Web App 即時更新；`service_role` key 可讓 Actions 繞過 RLS 寫入 |
+| **取捨** | 引入雲端依賴；免費方案有 500MB 限制（對純文件 metadata 的資料量而言足夠） |
+
+#### ADR-006：React Web App 作為團隊儀表板
+
+**狀態**：已決定
+
+| 面向 | 說明 |
+| :--- | :--- |
+| **問題** | 需要一個多角色共用的進度儀表板，讓 PM、工程師、客戶各自查看所需視圖 |
+| **決策** | 建立 React Web App，部署至 Vercel，讀取 Supabase 資料 |
+| **理由** | 彈性最高的前端方案；Recharts 可繪製 S-Curve/CFD；Vercel 零配置部署；三角色 L1/L2/L3 鑽取式架構 |
+| **取捨** | 需要前端開發工作（Phase 5）；Vercel 免費方案適用個人/小團隊 |
+
+#### ADR-007：GitHub Actions 作為資料同步管道
+
+**狀態**：已決定
+
+| 面向 | 說明 |
+| :--- | :--- |
+| **問題** | 需要在不引入額外基礎設施的情況下，將 `.md` 文件的結構化資料自動寫入 Supabase |
+| **決策** | 在 GitHub Repo 設定 Actions Workflow，偵測 `_Projects/**/*.md` 變更後執行 Python 腳本 |
+| **理由** | 零額外基礎設施；與現有 git push 流程無縫整合；Python 腳本易維護；免費 Actions 分鐘數對低頻 push 場景足夠 |
+| **取捨** | 強依賴 GitHub；解析複雜 Markdown 格式的 regex 需謹慎維護 |
 
 ---
 
@@ -195,23 +250,29 @@ graph LR
 | 需求 ID | 功能描述 | 對應使用者故事 |
 | :--- | :--- | :--- |
 | **FR-1** | YAML Frontmatter 規範：所有 `.md` 自動帶入 8 個核心欄位 | US-002 |
-| **FR-2** | GitHub → Obsidian 自動同步，延遲 ≤ 1 分鐘 | US-001 |
-| **FR-3** | `_Index.md` 主儀表板：多專案文件狀態、Critical 事項、最近更新 | US-003 |
-| **FR-4** | `_Risk_Board.md`：Critical 文件、Overdue WBS 任務、各專案完成率 | US-004 |
-| **FR-5** | Kanban 看板：WBS 子任務拖拉管理 | US-005 |
-| **FR-6** | OpenClaw 文件層查詢：phase、status、風險 | US-006 |
-| **FR-7** | OpenClaw WBS 任務層查詢：未完成數量、負責人、deadline | US-007 |
+| **FR-2** | GitHub → Obsidian 自動同步（Obsidian Git Plugin），延遲 ≤ 1 分鐘 | US-001 |
+| **FR-3** | Obsidian 個人知識庫：Mermaid 渲染、Graph View、各專案 _Dashboard.md 查閱 | — |
+| **FR-4** | Kanban 看板：WBS 子任務拖拉管理 | US-005 |
+| **FR-5** | OpenClaw 文件層查詢：phase、status、風險（索引整個 Vault） | US-006 |
+| **FR-6** | OpenClaw WBS 任務層查詢：未完成數量、負責人 `[owner::]`、deadline | US-007 |
+| **FR-7** | GitHub Actions 管道：push 後 ≤ 2 分鐘解析 WBS 任務並寫入 Supabase | US-008 |
+| **FR-8** | Supabase RBAC：Admin/Developer/Viewer 三角色，RLS 控制資料存取範圍 | US-009 |
+| **FR-9** | Web App PM 視圖：L1 專案組合總覽 / L2 診斷中心 / L3 任務明細 | US-003、US-004 |
+| **FR-10** | Web App 工程師視圖：今日待辦 / Kanban / 任務詳情 | US-010 |
+| **FR-11** | Web App 客戶視圖：交付摘要 / Roadmap / 透明化文件 | US-011 |
+| **FR-12** | Supabase Realtime：Web App 即時反映最新任務狀態，無需手動重新整理 | US-010 |
 
 ### 2.2 非功能性需求 (NFRs)
 
 | NFR 分類 | 具體需求描述 | 衡量指標/目標值 |
 | :--- | :--- | :--- |
-| **同步延遲** | git push 後 Obsidian 反映最新文件 | ≤ 1 分鐘 |
+| **本地同步延遲** | git push 後 Obsidian Vault 反映最新文件 | ≤ 1 分鐘 |
+| **雲端同步延遲** | git push 後 Supabase 任務資料更新 | ≤ 2 分鐘 |
 | **查詢準確率** | OpenClaw 回答標準測試集 | ≥ 90%（10 題中答對 9 題） |
 | **Dataview 渲染正確率** | 所有預設查詢正確渲染無錯誤 | 100% |
-| **本地優先** | 所有資料存於本地，不依賴雲端訂閱服務特定功能 | 離線可用 |
-| **零重複輸入** | 文件為唯一資料源，視圖由渲染產生 | 工具切換次數 ≤ 2 |
+| **零重複輸入** | `.md` 文件為唯一寫入源，所有視圖均由系統自動產生 | 工具切換次數 ≤ 2 |
 | **Frontmatter 覆蓋率** | 所有 Claude Code 產出的 `.md` 帶有正確 frontmatter | 100% |
+| **RBAC 正確性** | 三角色存取範圍符合 Supabase RLS 政策設計，無越權存取 | 100% |
 
 ---
 
@@ -219,53 +280,62 @@ graph LR
 
 ### 3.1 架構模式
 
-**模式**：本地優先單向資料流（Local-First Unidirectional Data Flow）
+**模式**：本地優先雙路衍生資料流（Local-First Dual-Derived Data Flow）
 
 ```
-寫入方向（單向）：
-Claude Code → git push → GitHub → Cron Pull → Obsidian Vault
+唯一寫入路徑：
+Claude Code / 工程師 → git push → GitHub
 
-讀取方向（多路）：
-Obsidian Vault → Dataview（結構化）
-Obsidian Vault → OpenClaw（語意化）
+路徑 A（本地知識庫）：
+GitHub → Obsidian Git Plugin（每 1 分鐘）→ Obsidian Vault
+  └→ Dataview（結構化視圖）
+  └→ OpenClaw（自然語言查詢）
+
+路徑 B（雲端進度資料庫）：
+GitHub → GitHub Actions（push 觸發）→ Python 腳本解析 YAML + WBS + 里程碑
+  └→ Supabase upsert → Web App（三角色儀表板）
 ```
 
-**選擇理由**：本系統的核心約束是「零重複輸入」。單向資料流確保唯一寫入路徑（Claude Code），消除在多工具間手動同步的需求。渲染/查詢層只讀不寫，徹底避免資料不一致問題。
+**選擇理由**：核心約束仍是「零重複輸入」。兩條路徑都從同一來源（`.md` 文件）派生，服務不同場景：Obsidian + OpenClaw 服務 PM 個人深度查閱；Supabase + Web App 服務多角色共用進度追蹤。
 
 ### 3.2 主要元件職責
 
 | 元件 | 核心職責 | 主要技術 | 依賴 |
 | :--- | :--- | :--- | :--- |
 | **YAML Frontmatter** | 提供機器可讀的文件 metadata，是整個系統的資料地基 | YAML | Claude Code（產出時帶入） |
-| **sync_vault.sh** | 定時將 GitHub 最新文件同步到本地 Vault | Bash + git | crontab、GitHub |
-| **Obsidian Dataview** | 從 frontmatter 動態渲染表格/清單視圖 | DQL（Dataview Query Language） | Vault 文件、Frontmatter |
-| **Obsidian Kanban** | 提供 WBS 任務的拖拉式操作介面 | Kanban Plugin | WBS.md 任務清單 |
-| **OpenClaw** | 理解自然語言問題，從 Vault 文件回答 | LLM + 本地文件索引 | Vault 目錄、System Prompt |
+| **Obsidian Git 外掛** | 每 1 分鐘自動 pull GitHub 最新文件到本地 Vault | Obsidian Community Plugin + git | Obsidian、GitHub |
+| **Obsidian Dataview** | 從 frontmatter 動態渲染表格/清單視圖（個人儀表板） | DQL（Dataview Query Language） | Vault 文件、Frontmatter |
+| **Obsidian Kanban** | 提供 WBS 任務的拖拉式操作介面 | Kanban Plugin | Kanban.md 任務清單 |
+| **OpenClaw** | 理解自然語言問題，從整個 Vault 文件回答 | LLM + 本地文件索引 | ~/ObsidianVault/ 完整目錄 |
+| **GitHub Actions** | 偵測 `_Projects/` 變更，執行 Python 腳本解析並 upsert Supabase | GitHub Actions Workflow + Python | GitHub Repo、Supabase service_role |
+| **Supabase** | 儲存結構化進度資料，提供 RLS 控制的 API 給 Web App | PostgreSQL + Row Level Security | GitHub Actions（寫入）、Web App（讀取） |
+| **Web App** | 三角色進度儀表板，從 Supabase 讀取並即時呈現 | React + Recharts + Supabase Realtime | Supabase anon key + RLS |
 
 ### 3.3 關鍵使用者旅程
 
 #### 旅程 1：工程師更新文件後，PM 查看最新進度
 
 1. 工程師修改 `.md` 文件並 `git push` 到 GitHub
-2. 本地 crontab 每 1 分鐘觸發 `sync_vault.sh`
-3. 腳本對 `~/ObsidianVault/_Projects/` 下所有 `.git` 目錄執行 `git pull`
-4. Obsidian 自動偵測文件變更，Dataview 查詢重新渲染
-5. PM 打開 `_Index.md`，看到最新文件狀態（延遲 ≤ 1 分鐘）
+2. **路徑 A**：Obsidian Git Plugin 每 1 分鐘自動 pull，Obsidian Vault 更新（延遲 ≤ 1 分鐘）
+3. **路徑 B**：GitHub Actions 偵測 `_Projects/*.md` 變更，Python 腳本解析 WBS 任務並 upsert Supabase（延遲 ≤ 2 分鐘）
+4. PM 打開 Web App 查看 L1 專案總覽，任務完成率自動更新
+5. 客戶打開 Web App 查看里程碑進度，無需 PM 手動更新報告
 
 #### 旅程 2：PM 接到利害關係人臨時詢問
 
 1. 利害關係人詢問：「金流模組現在進度怎麼樣？」
 2. PM 在 Telegram/Slack 向 OpenClaw 輸入：「金流模組還剩幾個任務，誰負責？」
-3. OpenClaw 掃描 Vault 中的 WBS.md，找到金流相關的 `- [ ]` 任務行
-4. OpenClaw 回傳：未完成任務數量、任務描述、負責人（`@BE:張後端`）、deadline
+3. OpenClaw 掃描整個 Vault 中的 WBS.md，找到金流相關的 `- [ ]` 任務行
+4. OpenClaw 回傳：未完成任務數量、任務描述、負責人（`[owner:: BE:張後端]`）、deadline
 5. PM 在 30 秒內回答，不需打開任何其他工具
 
 #### 旅程 3：PM 每日檢視全局風險
 
-1. 早上打開 Obsidian → `_Risk_Board.md`
-2. Dataview 渲染：`priority = critical` 的文件（按最後更新升冪，最久未更新排前）
-3. Dataview TASK 渲染：`deadline < today` 且未完成的 WBS 任務
-4. PM 識別最高風險事項，決定當日處理優先順序
+1. 早上打開 Web App → PM L2 診斷中心
+2. 查看 S-Curve：計畫完成率 vs. 實際完成率偏差
+3. 查看 CFD：各狀態任務數量趨勢，識別瓶頸
+4. 查看 Overdue 任務清單（`deadline < today AND status != 'Done'`），識別最高風險事項
+5. 決定當日處理優先順序，更新 WBS.md 並 git push
 
 ---
 
@@ -273,19 +343,22 @@ Obsidian Vault → OpenClaw（語意化）
 
 ### 4.1 技術選型原則
 
-- **本地優先**：優先選擇本地運行方案，不引入需要雲端訂閱的服務
-- **最小工具數**：整個系統只新增 Obsidian + OpenClaw，不引入新的資料庫或後端
+- **文件為唯一寫入源**：所有工具只負責讀取/渲染，寫入只透過 Claude Code → git push 進行
+- **按場景選擇工具**：本地個人閱讀用 Obsidian + OpenClaw；雲端多角色共用用 Supabase + Web App
 - **基於現有技能**：依賴 PM 已熟悉的 git、Markdown 工作流，降低學習成本
-- **不過度設計**：選擇「剛好滿足需求」的工具，避免引入比需求複雜度高的技術
+- **最小自建後端**：優先使用 managed 服務（Supabase、Vercel、GitHub Actions），不自建伺服器
 
 ### 4.2 技術棧詳情
 
 | 分類 | 選用技術 | 選擇理由 | 備選方案 | 相關 ADR |
 | :--- | :--- | :--- | :--- | :--- |
-| **可視化儀表板** | Obsidian + Dataview Plugin | 原生 `.md`；Dataview SQL-like 查詢 frontmatter；Mermaid 原生渲染；本地免費 | Notion（需手動輸入）、GitHub Projects（非 PM 全局視角） | ADR-001 |
-| **任務看板** | Obsidian Kanban Plugin | 與 Obsidian 同生態，直接讀取 `.md` 中的 `- [ ]` | Trello（需另外登入）、Linear（與 `.md` 不整合） | ADR-001 |
-| **自然語言查詢** | OpenClaw | 本地運行；多通訊頻道支援；可自訂 System Prompt | ChatGPT（文件需手動貼入）、Notion AI（資料需在 Notion 內） | ADR-002 |
-| **文件同步** | Bash + crontab | 零依賴、本地主控、無需額外服務 | GitHub Actions Webhook（需本地 HTTP server）、手動 pull（不自動化） | ADR-004 |
+| **本地知識庫** | Obsidian + Dataview Plugin | 原生 `.md`；Dataview SQL-like 查詢 frontmatter；Mermaid 渲染；本地免費 | Notion（需手動輸入）、GitHub Pages（無動態查詢） | ADR-001 |
+| **任務看板** | Obsidian Kanban Plugin | 與 Obsidian 同生態，讀取 Kanban.md 中的 `- [ ]` | Trello（需另外登入）、Linear（與 `.md` 不整合） | ADR-001 |
+| **自然語言查詢** | OpenClaw | 本地運行；多通訊頻道支援；可自訂 System Prompt；索引整個 Vault | ChatGPT（文件需手動貼入）、Notion AI（資料需在 Notion 內） | ADR-002 |
+| **本地同步** | Obsidian Git Plugin | 無需 Terminal；跨平台；適合全體成員；auto pull 1 分鐘 | crontab + 腳本（需 Terminal，不適合非技術成員） | ADR-004 |
+| **資料管道** | GitHub Actions + Python | 零額外基礎設施；與 git push 無縫整合；Python 腳本易維護 | 自建 webhook server（需維護）、手動輸入（違反零重複輸入原則） | ADR-007 |
+| **雲端資料庫** | Supabase（PostgreSQL） | managed 服務；內建 Auth + RLS；Realtime 支援；service_role key 給 Actions | Firebase（NoSQL，查詢彈性低）、PlanetScale（無 RLS） | ADR-005 |
+| **團隊儀表板** | React + Recharts + Vercel | 彈性最高；Recharts 支援 S-Curve/CFD；Vercel 零配置部署 | Metabase（需自建）、Retool（低程式碼但訂閱費） | ADR-006 |
 | **Frontmatter 模板** | Obsidian Templater Plugin | 新文件自動帶入 YAML frontmatter，減少人工遺漏 | 手動複製貼上（易遺漏欄位） | ADR-003 |
 | **文件格式** | Markdown + YAML | 純文字、跨工具相容、git 版控友善 | JSON/CSV（可讀性差）、Notion Database（資料鎖定） | ADR-003 |
 
@@ -295,7 +368,7 @@ Obsidian Vault → OpenClaw（語意化）
 
 ### 5.1 資料模型
 
-系統的資料分為兩層，存於同一份 `.md` 文件中：
+系統的資料分三個層次：`.md` 文件（唯一寫入源）→ Obsidian 本地（衍生）→ Supabase 雲端（衍生）
 
 #### Layer 1：Frontmatter（機器讀）
 
@@ -304,19 +377,19 @@ Obsidian Vault → OpenClaw（語意化）
 project: "ProjectName"       # 跨文件分組的唯一依據
 doc_type: WBS                # PRD / ERD / Architecture / WBS / API
 status: in-review            # draft / in-review / approved / deprecated
-phase: dev                   # planning / dev / testing / done / blocked
+phase: dev                   # WBS 文件：整個專案的宏觀階段（planning/dev/testing/done/blocked）
 priority: high               # low / medium / high / critical
-owner: PM                    # PM / TL / BE / FE
+owner: PM                    # PM / TL / BE / FE（文件負責人，非任務負責人）
 updated: 2026-04-25
 tags: [wbs]
-# WBS 專用
+# WBS 專用欄位
 total_tasks: 24
 module_count: 5
-team:
-  PM: 王小明
-  TL: 李技術
-  BE: 張後端
-  FE: 陳前端
+team:                        # 角色 → {name, email}，email 供 GitHub Actions 查找
+  PM: {name: 王小明, email: pm@example.com}
+  TL: {name: 李技術, email: tl@example.com}
+  BE: {name: 張後端, email: be@example.com}
+  FE: {name: 陳前端, email: fe@example.com}
 ---
 ```
 
@@ -324,40 +397,56 @@ team:
 
 - **章節結構**（`##`/`###`）：供 OpenClaw 語意理解使用
 - **Mermaid 圖表**：Obsidian 原生渲染，零額外設定
-- **WBS 任務**（`- [ ]` / `- [x]`）：供 Dataview TASK 查詢與 Kanban 使用
+- **WBS 任務**（`- [ ]` / `- [x]`）：供 GitHub Actions 解析寫入 Supabase
 
-WBS 任務格式：
+WBS 任務格式（`[owner:: ]` 為 Dataview inline metadata，GitHub Actions 以 regex 解析）：
 ```
-- [ ] M3.1.3 實作付款 API 串接 @BE:張後端 #2026-05-10
+- [ ] M3.1.3 實作付款 API 串接 [owner:: BE:張後端] #2026-05-10
 ```
+
+#### Layer 3：Supabase 結構化資料（衍生，由 GitHub Actions 寫入）
+
+```
+projects        ← repo + current_phase（來自 WBS frontmatter.phase）
+tasks_sync      ← WBS 任務（external_id / title / status / assignee_email / deadline）
+milestones      ← WBS 里程碑表格（milestone_name / planned_date / actual_date / is_completed）
+project_access  ← RBAC（user_id / project_id / role: admin|developer|viewer）
+profiles        ← Supabase Auth 用戶擴充資訊
+```
+
+> `tasks_sync` 不儲存 `progress` 欄位，Web App 從 `COUNT(status='Done') / COUNT(*)` 動態計算。
 
 ### 5.2 資料流向圖
 
 ```mermaid
 graph LR
-    CC[Claude Code] -->|產出含 Frontmatter 的 .md| GH[GitHub]
-    GH -->|git pull| VAULT[Obsidian Vault\n本地 .md 文件]
-    VAULT -->|Frontmatter 欄位| DV[Dataview\n結構化視圖]
-    VAULT -->|文件正文| OC[OpenClaw\n語意查詢]
-    VAULT -->|- checkbox 任務| DT[Dataview TASK\n任務進度]
-    DV --> IDX[_Index.md]
-    DT --> RSK[_Risk_Board.md]
+    CC[Claude Code / 工程師] -->|git push .md| GH[GitHub]
+    GH -->|Obsidian Git Plugin\n每 1 分鐘| VAULT[Obsidian Vault\n本地 .md 文件]
+    GH -->|Actions 觸發\n_Projects/*.md 變更| PY[Python 腳本\n解析 YAML + WBS + 里程碑]
+    VAULT -->|Frontmatter| DV[Dataview\n個人儀表板]
+    VAULT -->|全文| OC[OpenClaw\n自然語言查詢]
+    PY -->|service_role upsert| SB[Supabase\ntasks_sync / milestones]
+    SB -->|anon key + RLS| WEB[Web App\n三角色儀表板]
 ```
 
 ### 5.3 資料一致性策略
 
 | 場景 | 策略 |
 | :--- | :--- |
-| **GitHub 與 Vault 一致性** | Cron Pull 每 1 分鐘同步，最終一致；失敗時 log 記錄，人工介入 |
-| **WBS.md 與 Kanban.md 一致性** | WBS.md 為唯一資料源，Kanban 由人工同步；兩者不一致時以 WBS.md 為準 |
+| **GitHub 與 Vault 一致性** | Obsidian Git Plugin 每 1 分鐘 pull，最終一致；Obsidian 未開啟時離線，重新開啟立即補齊 |
+| **GitHub 與 Supabase 一致性** | Actions 在 push 後觸發，Upsert 保冪等性；Actions 失敗時 GitHub 發送通知，人工重觸發 |
+| **WBS.md 與 Kanban.md 一致性** | WBS.md 為唯一資料源，Kanban 為輔助操作介面；兩者不一致時以 WBS.md 為準 |
 | **Frontmatter 格式一致性** | Templater Plugin 自動帶入，CLAUDE.md 固定格式規範；Claude Code 產出時驗證 |
+| **Supabase 與 .md 文件衝突** | `.md` 文件永遠是最終依據；若 Supabase 資料異常，重新觸發 Actions 即可重置 |
 
 ### 5.4 資料生命週期
 
 | 資料類型 | 儲存位置 | 保留策略 |
 | :--- | :--- | :--- |
 | 所有 `.md` 文件 | 本地 Vault + GitHub | 永久保留，git 版控提供歷史 |
-| sync_vault.sh 執行 log | 本地 `~/logs/sync_vault.log` | 保留最近 30 天，超過自動清除 |
+| Supabase tasks_sync | Supabase 雲端 PostgreSQL | Actions Upsert 保持最新狀態；隨專案刪除 |
+| Supabase milestones | Supabase 雲端 PostgreSQL | Actions Upsert；隨專案刪除 |
+| GitHub Actions run logs | GitHub | 保留 90 天（預設）；失敗時人工查閱 |
 | OpenClaw 查詢記錄 | OpenClaw 本地儲存 | 依 OpenClaw 預設設定 |
 
 ---
@@ -366,48 +455,59 @@ graph LR
 
 ### 6.1 部署視圖
 
-本系統為純本地部署，無雲端服務依賴：
+系統分為本地端與雲端兩個部署區域：
 
 ```
-本地機器（macOS / Linux）
+本地機器（每位需閱讀文件的成員）
 ├── ~/ObsidianVault/
-│   ├── _Index.md
-│   ├── _Risk_Board.md
-│   └── _Projects/
-│       ├── ProjectA/    ← git clone from GitHub
-│       ├── ProjectB/
-│       └── ProjectC/
-├── ~/scripts/
-│   └── sync_vault.sh
-├── ~/logs/
-│   └── sync_vault.log
-└── crontab
-    └── */1 * * * * ~/scripts/sync_vault.sh >> ~/logs/sync_vault.log 2>&1
-
-應用程式：
+│   ├── _Projects/
+│   │   ├── ProjectA/    ← git clone from GitHub
+│   │   ├── ProjectB/
+│   │   └── ProjectC/
+│   └── 知識文件/
+│       └── ...
+│
 ├── Obsidian（桌面應用）
-│   ├── Dataview Plugin
-│   ├── Kanban Plugin
-│   └── Templater Plugin
+│   ├── Dataview Plugin   ← 個人 _Dashboard.md 查詢
+│   ├── Kanban Plugin     ← Kanban.md 任務看板
+│   ├── Templater Plugin  ← 新文件自動帶入 frontmatter
+│   └── Obsidian Git Plugin  ← 每 1 分鐘 auto pull / auto push
+│
 └── OpenClaw（本地服務）
-    └── 讀取 ~/ObsidianVault/_Projects/
+    └── 讀取 ~/ObsidianVault/（整個 Vault）
+
+GitHub（版控 + 資料管道）
+├── GitHub Repos   ← .md 文件版控
+└── GitHub Actions
+    └── sync_to_supabase.yml
+        └── scripts/sync_to_supabase.py
+
+雲端服務
+├── Supabase（PostgreSQL + RLS）
+│   ├── projects / tasks_sync / milestones / project_access / profiles
+│   └── Realtime subscription（Web App 即時更新）
+│
+└── Vercel（Web App 前端）
+    └── React + Recharts  ← 三角色儀表板
 ```
 
-### 6.2 同步腳本設計（`sync_vault.sh`）
+### 6.2 Obsidian Git 外掛設定
 
-```bash
-#!/bin/bash
-VAULT_ROOT="$HOME/ObsidianVault/_Projects"
-LOG_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+在 Obsidian Settings → Community Plugins → Obsidian Git 中設定：
 
-for repo_dir in "$VAULT_ROOT"/*/; do
-    if [ -d "$repo_dir/.git" ]; then
-        project=$(basename "$repo_dir")
-        result=$(git -C "$repo_dir" pull 2>&1)
-        echo "[$LOG_TIME] $project: $result"
-    fi
-done
-```
+| 設定項目 | 建議值 | 說明 |
+| :--- | :--- | :--- |
+| **Auto pull interval (minutes)** | `1` | 每 1 分鐘自動 pull |
+| **Pull on startup** | 開啟 | 開啟 Obsidian 時立即 pull |
+| **Auto push interval** | `0` 或依角色需求 | 純讀取成員設為 0 |
+
+各角色設定差異：
+
+| 角色 | Auto pull | Auto push |
+| :--- | :--- | :--- |
+| PM | 開啟 | 開啟 |
+| 工程師 | 開啟 | 視情況 |
+| 其他成員 | 開啟 | 關閉 |
 
 ### 6.3 環境設定清單
 
@@ -415,9 +515,13 @@ done
 | :--- | :--- | :--- |
 | 建立 Vault 目錄 | `mkdir -p ~/ObsidianVault/_Projects` | Phase 1 |
 | Clone 現有 repos | `git clone <repo_url> ~/ObsidianVault/_Projects/<name>` | 每個專案執行一次 |
-| 設定 crontab | `crontab -e` → 加入同步指令 | Phase 1 |
-| 安裝 Obsidian Plugins | Dataview、Kanban、Templater | Phase 2 |
-| 設定 OpenClaw 知識庫路徑 | 指向 `~/ObsidianVault/_Projects/` | Phase 3 |
+| 安裝 Obsidian Plugins | Dataview、Kanban、Templater、**Obsidian Git** | Phase 1-2 |
+| 設定 Obsidian Git | Auto pull interval: 1 分鐘、Pull on startup: 開啟 | Phase 1（全體成員） |
+| 設定 OpenClaw 知識庫路徑 | 指向 `~/ObsidianVault/`（整個 Vault） | Phase 3 |
+| 建立 Supabase Schema | 執行 `Supabase_Schema設計規格書.md` 中的 SQL | Phase 4 |
+| 設定 GitHub Actions Secrets | `SUPABASE_URL` + `SUPABASE_KEY`（service_role） | Phase 4 |
+| 建立 Actions Workflow | `scripts/sync_to_supabase.py` + `.github/workflows/sync_to_supabase.yml` | Phase 4 |
+| 部署 Web App | Vercel 連接 GitHub repo，設定 `NEXT_PUBLIC_SUPABASE_URL` 等環境變數 | Phase 5 |
 
 ---
 
@@ -427,7 +531,9 @@ done
 
 | 面向 | 設計 |
 | :--- | :--- |
-| **同步監控** | `sync_vault.sh` 每次執行寫入 `~/logs/sync_vault.log`，記錄時間戳與 git pull 結果 |
+| **本地同步監控** | Obsidian Git 外掛提供 Git 操作歷史面板，可查看每次 pull/push 的狀態與時間 |
+| **GitHub Actions 監控** | GitHub Actions 頁面查看每次 workflow run 狀態；失敗時 GitHub 自動發送 email 通知 |
+| **Supabase 資料驗證** | push 後 2 分鐘在 Supabase Table Editor 確認 tasks_sync 資料已更新 |
 | **Frontmatter 覆蓋率** | 定期執行 `grep -rL "^project:" ~/ObsidianVault/_Projects/` 找出缺少 frontmatter 的文件 |
 | **OpenClaw 準確率** | 維護 10 題標準測試集，每週手動驗證一次 |
 
@@ -435,9 +541,11 @@ done
 
 | 面向 | 設計 |
 | :--- | :--- |
-| **資料主權** | 所有文件存於本地，OpenClaw 本地運行，不將文件內容上傳第三方雲端 |
-| **GitHub 存取** | 使用 SSH Key 進行 git pull，不在腳本中儲存明文密碼 |
+| **文件資料主權** | 所有 `.md` 文件存於本地 + GitHub；OpenClaw 本地運行，不將文件內容上傳第三方雲端 |
+| **GitHub 存取** | 使用 SSH Key 進行 git pull；Actions 使用 GitHub Secrets 儲存 Supabase 憑證，不明文存在程式碼 |
+| **Supabase 存取控制** | RLS 政策確保用戶只能查看有權限的專案資料；Web App 使用 `anon` key，Actions 使用 `service_role` key |
 | **OpenClaw 通訊** | 透過 Telegram/Slack 官方加密頻道，查詢結果不儲存於雲端 |
+| **Web App 認證** | 透過 Supabase Auth 管理用戶身份；`project_access` 表控制各用戶的專案可見範圍 |
 
 ---
 
@@ -445,11 +553,13 @@ done
 
 | 風險 ID | 類別 | 描述 | 可能性 | 影響 | 緩解策略 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **R-01** | 規範 | Frontmatter 欄位名稱不一致，Dataview 查詢回傳空結果或報錯 | 高 | 高 | 在 CLAUDE.md 固定格式；使用 Templater 自動套入；Phase 0 驗證 3 份文件後再繼續 |
-| **R-02** | 同步 | Cron 腳本靜默失敗（網路中斷、git 衝突），PM 看到過期資料 | 中 | 中 | sync.sh 寫入 log；每週確認 log 無異常；若 30 分鐘內無新 log 則告警 |
+| **R-01** | 規範 | Frontmatter 欄位名稱不一致，Dataview 查詢回傳空結果或 Actions 解析失敗 | 高 | 高 | 在 CLAUDE.md 固定格式；使用 Templater 自動套入；Phase 0 驗證 3 份文件後再繼續 |
+| **R-02** | 同步 | Obsidian 未開啟時不自動同步，PM 看到過期本地文件 | 低 | 低 | 開啟 Obsidian 時自動補齊離線期間更新；Web App 的資料來自 Supabase 不受此影響 |
 | **R-03** | 查詢 | OpenClaw 對中文 `.md` 解析品質不穩定，回答出現幻覺或遺漏 | 中 | 中 | Phase 3 以 10 題測試集驗收；定期重新測試；不穩定時降級為直接查 Obsidian |
-| **R-04** | 規範 | WBS `@角色:姓名` 格式與 frontmatter `team` 欄位不一致，導致人員資訊矛盾 | 中 | 低 | WBS 文件更新時需同步確認兩處一致；`team` 欄位為唯一定義來源 |
-| **R-05** | 效能 | 專案數量增多，Dataview 全局查詢渲染變慢 | 低 | 低 | 超過 5 個專案後，改為 per-project 儀表板；避免在單一查詢掃描全部 Vault |
+| **R-04** | 規範 | WBS 任務 `[owner:: 角色:姓名]` 格式錯誤，GitHub Actions regex 解析失敗導致 assignee_email 為 NULL | 中 | 低 | WBS 文件建立時以 `team` frontmatter 為唯一角色定義；Actions 解析失敗僅影響 email，任務仍寫入 |
+| **R-05** | 管道 | GitHub Actions 腳本執行失敗，Supabase 資料未更新 | 低 | 中 | GitHub 自動發送 fail 通知；Actions 支援手動重觸發；`.md` 文件本身不受影響 |
+| **R-06** | 安全 | Supabase RLS 政策設定錯誤，用戶可查看未授權的專案資料 | 低 | 高 | Phase 4 以三角色測試驗收 RLS；使用 `service_role` 測試 RLS bypass 確認政策正確 |
+| **R-07** | 效能 | 專案數量增多，Dataview 全局查詢渲染變慢 | 低 | 低 | 超過 5 個專案後，改為 per-project 個別儀表板；主要進度查看已移至 Web App |
 
 ---
 
@@ -459,35 +569,40 @@ done
 - 建立 YAML Frontmatter 規範，更新 CLAUDE.md
 - 驗收：3 份含正確 frontmatter 的 `.md` 文件
 
-### Phase 1（Day 1-2）：同步建立
+### Phase 1（Day 1-2）：本地同步建立
 - 建立 Obsidian Vault 目錄結構，clone 現有 repos
-- 建立 `sync_vault.sh` 並設定 crontab
+- 安裝並設定 Obsidian Git 外掛（全體成員），Auto pull interval: 1 分鐘
 - 驗收：git push 後 1 分鐘內 Vault 自動更新
 
-### Phase 2（Day 3）：儀表板
+### Phase 2（Day 3）：Obsidian 知識庫
 - 安裝 Dataview、Kanban、Templater Plugins
-- 建立 `_Index.md` 與 `_Risk_Board.md`，加入 WBS 任務進度區塊
-- 驗收：Dataview 所有查詢正確渲染
+- 確認 Mermaid 渲染、Graph View、各專案 `_Dashboard.md` 正常運作
+- 驗收：Obsidian 作為個人知識庫可正常使用
 
 ### Phase 3（Day 4-5）：自然語言查詢
-- 設定 OpenClaw 連接 Vault 目錄
-- 套入 PM 專用 System Prompt（含 WBS 任務格式說明）
+- 設定 OpenClaw 連接整個 Vault（`~/ObsidianVault/`）
+- 套入 PM 專用 System Prompt（含 WBS `[owner::]` 任務格式說明）
 - 驗收：10 題標準測試集答對 9 題以上
 
-### Phase 4（Day 6-7）：微調
-- 根據實際使用調整 Dataview 查詢與 OpenClaw System Prompt
-- 補全現有專案的 WBS.md
-- 驗收：PM 能流暢使用系統一整天，工具切換次數 ≤ 2
+### Phase 4（Day 6-7）：資料管道
+- 建立 Supabase Schema（執行規格書中的 SQL）
+- 設定 GitHub Actions Workflow + Python 腳本（`scripts/sync_to_supabase.py`）
+- 驗收：push 後 ≤ 2 分鐘 Supabase tasks_sync 資料正確更新
+
+### Phase 5（Day 8-14）：Web App 儀表板
+- 建立 React Web App，接入 Supabase，實作三角色 L1/L2/L3 Dashboard
+- 部署至 Vercel
+- 驗收：三角色可正常登入並查看各自視圖；Supabase Realtime 即時反映任務更新
 
 ### 未來演進（Post-MVP）
-- 若專案數超過 5 個，建立 per-project 個別儀表板
 - 若 OpenClaw 不穩定，評估替換為其他本地 RAG 方案（如 Obsidian Local GPT Plugin）
-- 若需要 deadline 彙整視圖，可在 frontmatter 加入 `module_deadlines` 欄位（待 Q-001 決策後）
+- 若專案數超過 5 個且 Dataview 效能下降，改為純 per-project 個別儀表板
+- 考慮為 Web App 加入 PM 直接在 UI 更新任務狀態的功能（需調整 Single Source of Truth 原則）
 
 ---
 
-**文件版本**：v1.0
-**最後更新**：2026-04-25
+**文件版本**：v1.1
+**最後更新**：2026-04-29
 **狀態**：草稿（Draft）
 
 ---
@@ -497,3 +612,4 @@ done
 | 日期 | 審核人 | 版本 | 變更摘要 |
 | :--- | :--- | :--- | :--- |
 | 2026-04-25 | PM | v1.0 | 初稿提交 |
+| 2026-04-29 | PM | v1.1 | 移除 _Index.md/_Risk_Board.md；更新 FR 對應 US 編號；ADR-003 欄位說明補齊 tags |

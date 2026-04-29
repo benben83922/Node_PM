@@ -10,7 +10,7 @@
 
 ### 1.1 核心問題
 
-Obsidian 儀表板解決了「預設視圖」的問題——PM 打開 `_Index.md` 就能看到全局狀態。但當問題是**臨時的、未預設的**時，Obsidian 的 Dataview 就不夠用了：
+Web App 解決了「預設視圖」的問題——PM 打開 L1 儀表板就能看到全局狀態。但當問題是**臨時的、未預設的**時，Web App 的結構化視圖就不夠用了：
 
 - 「ProjectA 的里程碑託管模組現在依賴哪些後端任務？」
 - 「ERD 裡的 Dispute 實體有哪些欄位？」
@@ -169,11 +169,13 @@ OpenClaw 的回答應遵循以下格式：
 
 ```
 # 在 OpenClaw 設定介面中：
-知識庫目錄：~/ObsidianVault/_Projects/
+知識庫目錄：~/ObsidianVault/
 檔案類型：.md
 遞迴掃描：開啟
 排除目錄：.git/
 ```
+
+> OpenClaw 索引整個 Vault（含 `_Projects/` 下的專案文件與其他知識文件），可回答跨越專案進度與個人知識庫的問題。
 
 ### 5.2 通訊頻道設定
 
@@ -229,7 +231,7 @@ OpenClaw 查找所有 priority = critical 且 status != approved 的文件，
 
 | 限制 | 說明 | 緩解方式 |
 | :--- | :--- | :--- |
-| **文件同步延遲** | OpenClaw 讀取的是本地 Vault 的狀態，最多有 10 分鐘延遲 | 提問前手動執行 `bash ~/scripts/sync_vault.sh` |
+| **文件同步延遲** | OpenClaw 讀取的是本地 Vault 的狀態，同步延遲取決於 Obsidian Git Plugin（通常 ≤ 1 分鐘） | 確認 Obsidian 已開啟且 Git Plugin 已 pull 到最新版本後再提問 |
 | **大型文件可能被截斷** | 超過 context window 的文件只能讀取部分內容 | 把超大文件（如 ERD）按 bounded context 拆分 |
 | **口頭決策不在知識庫** | 沒有記錄進 .md 的口頭決策，OpenClaw 不知道 | 養成把重要決策補入文件的習慣 |
 | **程式碼內容** | OpenClaw 不讀取 .ts / .py 等程式碼檔案 | 只用於查詢文件層面的資訊 |

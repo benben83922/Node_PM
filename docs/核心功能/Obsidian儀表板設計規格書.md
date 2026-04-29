@@ -1,6 +1,6 @@
 # Obsidian 儀表板｜設計規格書
 
-**版本**：v1.0
+**版本**：v1.1
 **文件類型**：核心功能規格
 **前置依賴**：文件規範_YAML設計規格書.md（Frontmatter 必須先建立）
 
@@ -8,23 +8,25 @@
 
 ## 一、功能定位
 
-### 1.1 核心問題
+### 1.1 定位說明
 
-PM 面對多個並行專案時，需要一個「打開就能看懂全局」的可視化介面，而不是每次都要手動翻找文件。現有工具（Notion、Jira）都要求手動在工具內輸入資料，與 Claude Code 產出的 `.md` 文件之間存在不可彌合的落差。
+Obsidian 定位為 PM 的**個人知識庫**，提供本地 `.md` 文件的閱讀、Mermaid 渲染與知識連結功能。團隊共用的進度儀表板與風險看板由 **Web App** 負責。
 
-### 1.2 解決方案
+| 工具 | 定位 | 對象 |
+| :--- | :--- | :--- |
+| **Obsidian** | 個人知識庫（開發文件、知識文件、Mermaid 渲染） | PM 個人 |
+| **Web App** | 團隊共用進度儀表板 | PM、工程師、客戶 |
 
-**Obsidian** 原生讀取 `.md` 文件，搭配 **Dataview Plugin** 的動態查詢能力，讓所有儀表板視圖從文件的 YAML Frontmatter **自動渲染**，無需任何重複輸入。
+### 1.2 Obsidian 保留的核心價值
 
 ```
 .md 文件（含 YAML Frontmatter）
         ↓
-Obsidian 讀取本地 Vault
+Obsidian 讀取本地 Vault（透過 Obsidian Git 每 1 分鐘 pull）
         ↓
-Dataview 執行查詢 → 動態渲染表格/清單
 Mermaid  解析圖表 → 直接渲染架構圖/ERD
 Graph View         → 文件關聯節點圖
-Kanban             → 任務看板
+文件全文閱讀       → 含 Frontmatter + 正文的完整知識庫
 ```
 
 ---
@@ -36,11 +38,8 @@ Kanban             → 任務看板
 ```
 ~/ObsidianVault/
   │
-  ├── _Index.md                    ← 主儀表板（每日入口）
-  ├── _Risk_Board.md               ← 風險與待決看板
-  │
   └── _Projects/                   ← 所有專案文件目錄
-        ├── _Projects/ProjectA/             ← 對應 GitHub repo
+        ├── ProjectA/              ← 對應 GitHub repo
         │   ├── PRD.md
         │   ├── ERD.md
         │   ├── Architecture.md
@@ -56,198 +55,14 @@ Kanban             → 任務看板
 
 | Vault 目錄 | 對應 GitHub repo | 同步方式 |
 | :--- | :--- | :--- |
-| `_Projects/ProjectA/` | `github.com/user/project-a` | git clone + cron pull |
-| `_Projects/ProjectAlpha/` | `github.com/user/project-alpha` | git clone + cron pull |
+| `_Projects/ProjectA/` | `github.com/user/project-a` | git clone + Obsidian Git auto pull |
+| `_Projects/ProjectAlpha/` | `github.com/user/project-alpha` | git clone + Obsidian Git auto pull |
 
 每個 `_Projects/` 底下的子目錄，就是對應 GitHub repo 的本地 clone 路徑。
 
 ---
 
-## 三、主儀表板（`_Index.md`）
-
-### 3.1 設計目標
-
-打開 `_Index.md`，PM 在 30 秒內看到：
-- 所有專案的文件狀態分布
-- 目前有哪些文件是 `draft` 或 `blocked`
-- 最近 7 天有哪些文件更新了
-- 目前最高風險/優先度的事項
-
-### 3.2 完整內容
-
-````markdown
-# 專案管理儀表板
-
-> 最後更新：{{date}}
-
----
-
-## 📊 多專案文件總覽
-
-```dataview
-TABLE
-  project AS "專案",
-  doc_type AS "文件類型",
-  status AS "狀態",
-  phase AS "階段",
-  priority AS "優先度",
-  owner AS "負責人",
-  updated AS "更新日期"
-FROM "_Projects"
-WHERE file.name != "_Index" AND file.name != "_Risk_Board"
-SORT project ASC, doc_type ASC
-```
-
----
-
-## 🔴 需要關注（Critical & High）
-
-```dataview
-TABLE
-  project AS "專案",
-  doc_type AS "文件",
-  phase AS "階段",
-  owner AS "負責人"
-FROM "_Projects"
-WHERE priority = "critical" OR priority = "high"
-WHERE status != "approved" AND status != "deprecated"
-SORT priority DESC, updated DESC
-```
-
----
-
-## ⏸ Blocked 事項
-
-```dataview
-LIST file.link + "（" + project + " / " + doc_type + "）"
-FROM "_Projects"
-WHERE phase = "blocked"
-SORT updated DESC
-```
-
----
-
-## 📝 草稿待審（Draft）
-
-```dataview
-TABLE
-  project AS "專案",
-  doc_type AS "文件",
-  owner AS "負責人",
-  updated AS "最後更新"
-FROM "_Projects"
-WHERE status = "draft"
-SORT updated DESC
-```
-
----
-
-## 🕐 最近 7 天更新
-
-```dataview
-TABLE
-  project AS "專案",
-  doc_type AS "文件",
-  status AS "狀態",
-  updated AS "更新日期"
-FROM "_Projects"
-WHERE date(updated) >= date(today) - dur(7 days)
-SORT updated DESC
-```
-
----
-
-## ✅ 已核准文件
-
-```dataview
-LIST file.link + "（" + doc_type + "）"
-FROM "_Projects"
-WHERE status = "approved"
-GROUP BY project
-```
-````
-
----
-
-## 四、風險看板（`_Risk_Board.md`）
-
-### 4.1 設計目標
-
-提供一個永遠「置頂顯示風險」的專用頁面，讓 PM 在面對利害關係人問詢時能立即找到：高風險文件、blocked 事項、未決問題。
-
-### 4.2 完整內容
-
-````markdown
-# 風險與待決看板
-
-> 更新時間：{{date}}
-
----
-
-## 🔴 Critical 事項
-
-```dataview
-TABLE
-  project AS "專案",
-  doc_type AS "文件",
-  phase AS "目前階段",
-  owner AS "負責人",
-  updated AS "最後更新"
-FROM "_Projects"
-WHERE priority = "critical"
-WHERE status != "deprecated"
-SORT updated ASC
-```
-
----
-
-## ⏸ Blocked 文件
-
-```dataview
-TABLE
-  project AS "專案",
-  doc_type AS "文件",
-  priority AS "優先度",
-  owner AS "負責人"
-FROM "_Projects"
-WHERE phase = "blocked"
-SORT priority DESC
-```
-
----
-
-## 📋 各專案進度快覽
-
-```dataview
-TABLE
-  length(filter(rows, (r) => r.status = "approved")) AS "已核准",
-  length(filter(rows, (r) => r.status = "in-review")) AS "審核中",
-  length(filter(rows, (r) => r.status = "draft")) AS "草稿"
-FROM "_Projects"
-WHERE file.name != "_Index" AND file.name != "_Risk_Board"
-GROUP BY project
-```
-
----
-
-## 🕒 超過 30 天未更新的文件
-
-```dataview
-TABLE
-  project AS "專案",
-  doc_type AS "文件",
-  status AS "狀態",
-  updated AS "最後更新"
-FROM "_Projects"
-WHERE date(updated) < date(today) - dur(30 days)
-WHERE status != "approved" AND status != "deprecated"
-SORT updated ASC
-```
-````
-
----
-
-## 五、各專案個別儀表板（選配）
+## 三、各專案個別儀表板（選配）
 
 當單一專案文件數量超過 10 份時，建議為每個專案建立獨立的儀表板 `_Projects/ProjectA/_Dashboard.md`：
 
@@ -262,38 +77,41 @@ WHERE file.name != "_Dashboard"
 SORT doc_type ASC
 ```
 
-## 里程碑進度
-
-> 從 WBS.md 手動摘錄關鍵里程碑，此區域不自動渲染
-
-| 里程碑 | 目標日期 | 狀態 |
-|--------|----------|------|
-| M1：基礎架構 | Week 2 | ⏳ |
-| M2：Iteration 1 | Week 4 | ⏳ |
+## WBS 任務進度總覽
+```dataview
+TABLE
+  total_tasks AS "總任務數",
+  module_count AS "模組數",
+  status AS "文件狀態",
+  phase AS "階段"
+FROM "_Projects/ProjectA"
+WHERE doc_type = "WBS"
 ```
 ````
 
+> 全專案進度追蹤（多角色、S-Curve、CFD、Overdue 清單）由 Web App 負責；此儀表板僅供 PM 個人本地查閱文件狀態。
+
 ---
 
-## 六、Plugin 設定清單
+## 四、Plugin 設定清單
 
-### 6.1 必裝 Plugin
+### 4.1 必裝 Plugin
 
 | Plugin | 用途 | 安裝來源 |
 | :--- | :--- | :--- |
-| **Dataview** | SQL-like 查詢 frontmatter，渲染動態視圖 | Community Plugins |
+| **Dataview** | SQL-like 查詢 frontmatter，渲染各專案個別儀表板 | Community Plugins |
 | **Templater** | 新文件自動帶入 YAML frontmatter 模板 | Community Plugins |
 | **Kanban** | 任務看板（拖拉式管理 WBS 任務） | Community Plugins |
+| **Obsidian Git** | 每 1 分鐘自動 pull GitHub 最新文件，支援全體成員同步 | Community Plugins |
 
-### 6.2 選裝 Plugin
+### 4.2 選裝 Plugin
 
 | Plugin | 用途 | 必要性 |
 | :--- | :--- | :--- |
-| **Git** | 在 Obsidian 內觸發 push/pull | 低（cron 腳本已處理） |
 | **Calendar** | 時間軸視角，按日期瀏覽 | 低 |
 | **Tag Wrangler** | 管理 frontmatter tags | 低 |
 
-### 6.3 內建功能（無需額外安裝）
+### 4.3 內建功能（無需額外安裝）
 
 | 功能 | 說明 |
 | :--- | :--- |
@@ -303,9 +121,9 @@ SORT doc_type ASC
 
 ---
 
-## 七、圖表呈現方式
+## 五、圖表呈現方式
 
-### 7.1 Mermaid 圖表（原生渲染）
+### 5.1 Mermaid 圖表（原生渲染）
 
 文件中的 Mermaid 程式碼塊在 Obsidian 閱讀模式下自動渲染：
 
@@ -320,7 +138,7 @@ SORT doc_type ASC
 
 **使用方式**：文件中的 Mermaid 無需任何修改，切換到閱讀模式（Ctrl+E）即可看到渲染結果。
 
-### 7.2 Graph View 設定
+### 5.2 Graph View 設定
 
 在 Obsidian Graph View 中，建議設定：
 
@@ -329,7 +147,7 @@ SORT doc_type ASC
    - 按 `project` tag 分群（不同顏色代表不同專案）
    - `priority = critical` 的文件顯示較大節點
 
-### 7.3 Kanban 看板
+### 5.3 Kanban 看板
 
 為 WBS 中的任務建立 Kanban 視圖，在 `_Projects/ProjectX/Kanban.md` 建立：
 
@@ -357,30 +175,28 @@ kanban-plugin: basic
 
 ---
 
-## 八、使用流程
+## 六、使用流程
 
-### 8.1 每日 PM 工作流程
+### 6.1 每日 PM 工作流程
 
 ```
 早上開機
   ↓
-打開 Obsidian → _Index.md
+打開 Web App → 查看 PM L1 專案組合總覽（全局風險與進度）
   ↓
-查看「需要關注」區塊（Critical & High）
-  ↓
-查看「最近 7 天更新」（確認文件有同步）
+打開 Obsidian → 透過 Graph View 或各專案 _Dashboard.md 查閱文件細節
   ↓
 處理待辦事項，更新對應文件的 frontmatter
   ↓
-git push（自動觸發工程師端同步）
+git push（自動觸發工程師端同步 + GitHub Actions 更新 Supabase）
 ```
 
-### 8.2 接到利害關係人問詢時
+### 6.2 接到利害關係人問詢時
 
 ```
 利害關係人：「A 專案現在到哪裡了？」
   ↓
-打開 _Risk_Board.md → 查看 A 專案的文件狀態
+打開 Web App → 查看 A 專案診斷頁（L2）
   或
 在 OpenClaw 輸入：「A 專案目前進度？」
   ↓
@@ -389,6 +205,6 @@ git push（自動觸發工程師端同步）
 
 ---
 
-**文件版本**：v1.0
-**最後更新**：2026-04-25
+**文件版本**：v1.1
+**最後更新**：2026-04-29
 **狀態**：草稿（Draft）
