@@ -1,3 +1,14 @@
+---
+project: Node_PM
+doc_type: FeatureSpec
+status: draft
+phase: planning
+priority: high
+owner: PM
+updated: 2026-05-06
+tags: [obsidian, dashboard, dataview]
+---
+
 # Obsidian 儀表板｜設計規格書
 
 **版本**：v1.1
@@ -37,34 +48,34 @@ Graph View         → 文件關聯節點圖
 
 ```
 ~/ObsidianVault/
-  │
-  └── _Projects/                   ← 所有專案文件目錄
-        ├── ProjectA/              ← 對應 GitHub repo
-        │   ├── PRD.md
-        │   ├── ERD.md
-        │   ├── Architecture.md
-        │   ├── WBS.md
-        │   └── ...
-        ├── ProjectAlpha/
-        │   └── ...
-        └── ProjectBeta/
-            └── ...
+  ├── .git/                        ← 父儲存庫
+  ├── .gitmodules
+  ├── ProjectA/                    ← submodule（對應 GitHub repo，僅含 .md）
+  │   ├── PRD.md
+  │   ├── ERD.md
+  │   ├── Architecture.md
+  │   ├── WBS.md
+  │   └── ...
+  ├── ProjectAlpha/                ← submodule
+  │   └── ...
+  └── ProjectBeta/                 ← submodule
+      └── ...
 ```
 
 ### 2.2 目錄與 GitHub 的對應關係
 
 | Vault 目錄 | 對應 GitHub repo | 同步方式 |
 | :--- | :--- | :--- |
-| `_Projects/ProjectA/` | `github.com/user/project-a` | git clone + Obsidian Git auto pull |
-| `_Projects/ProjectAlpha/` | `github.com/user/project-alpha` | git clone + Obsidian Git auto pull |
+| `ProjectA/` | `github.com/user/project-a` | git submodule + Obsidian Git auto pull |
+| `ProjectAlpha/` | `github.com/user/project-alpha` | git submodule + Obsidian Git auto pull |
 
-每個 `_Projects/` 底下的子目錄，就是對應 GitHub repo 的本地 clone 路徑。
+每個 submodule 子目錄直接位於 Vault 根目錄下，稀疏檢出設定確保只同步 `.md` 文件。
 
 ---
 
 ## 三、各專案個別儀表板（選配）
 
-當單一專案文件數量超過 10 份時，建議為每個專案建立獨立的儀表板 `_Projects/ProjectA/_Dashboard.md`：
+當單一專案文件數量超過 10 份時，建議為每個專案建立獨立的儀表板 `ProjectA/_Dashboard.md`：
 
 ````markdown
 # ProjectA 專案儀表板
@@ -72,7 +83,7 @@ Graph View         → 文件關聯節點圖
 ## 文件清單
 ```dataview
 TABLE doc_type, status, phase, owner, updated
-FROM "_Projects/ProjectA"
+FROM "ProjectA"
 WHERE file.name != "_Dashboard"
 SORT doc_type ASC
 ```
@@ -84,7 +95,7 @@ TABLE
   module_count AS "模組數",
   status AS "文件狀態",
   phase AS "階段"
-FROM "_Projects/ProjectA"
+FROM "ProjectA"
 WHERE doc_type = "WBS"
 ```
 ````
@@ -142,14 +153,14 @@ WHERE doc_type = "WBS"
 
 在 Obsidian Graph View 中，建議設定：
 
-1. **Filter**：只顯示 `_Projects` 路徑的文件
+1. **Filter**：只顯示含 `project` frontmatter 的文件（Filter: `frontmatter.project`）
 2. **Groups**：
    - 按 `project` tag 分群（不同顏色代表不同專案）
    - `priority = critical` 的文件顯示較大節點
 
 ### 5.3 Kanban 看板
 
-為 WBS 中的任務建立 Kanban 視圖，在 `_Projects/ProjectX/Kanban.md` 建立：
+為 WBS 中的任務建立 Kanban 視圖，在 `ProjectX/Kanban.md` 建立：
 
 ```markdown
 ---
@@ -198,7 +209,7 @@ git push（自動觸發工程師端同步 + GitHub Actions 更新 Supabase）
   ↓
 打開 Web App → 查看 A 專案診斷頁（L2）
   或
-在 OpenClaw 輸入：「A 專案目前進度？」
+在 Discord 向 NemoClaw 輸入：「A 專案目前進度？」
   ↓
 30 秒內回答
 ```
@@ -206,5 +217,5 @@ git push（自動觸發工程師端同步 + GitHub Actions 更新 Supabase）
 ---
 
 **文件版本**：v1.1
-**最後更新**：2026-04-29
+**最後更新**：2026-05-06
 **狀態**：草稿（Draft）

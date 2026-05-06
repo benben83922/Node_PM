@@ -1,6 +1,6 @@
 ---
 project: Node_PM
-doc_type: design_spec
+doc_type: FeatureSpec
 status: draft
 phase: planning
 priority: high
@@ -11,9 +11,9 @@ tags: [NemoClaw, OpenClaw, Discord, agent, conversation-memory]
 
 # NemoClaw + Discord Agent｜設計規格書
 
-**版本**：v1.0  
+**版本**：v1.1
 **文件類型**：核心功能規格  
-**前置依賴**：OpenClaw自然語言查詢設計規格書.md、Obsidian儀表板設計規格書.md
+**前置依賴**：文件規範_YAML設計規格書.md、Obsidian儀表板設計規格書.md
 
 ---
 

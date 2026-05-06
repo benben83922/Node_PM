@@ -1,8 +1,19 @@
+---
+project: Node_PM
+doc_type: FeatureSpec
+status: draft
+phase: planning
+priority: high
+owner: PM
+updated: 2026-05-06
+tags: [supabase, schema, database]
+---
+
 # Supabase Schema｜設計規格書
 
 **版本**：v1.0
 **文件類型**：核心功能規格
-**依賴**：GitHub_Actions_Pipeline設計規格書.md、Web_App設計規格書.md
+**前置依賴**：GitHub_Actions_Pipeline設計規格書.md、Web_App設計規格書.md
 
 ---
 
@@ -53,7 +64,7 @@ CREATE TABLE tasks_sync (
     project_id     UUID REFERENCES projects(id) ON DELETE CASCADE,
     external_id    TEXT NOT NULL,           -- WBS 任務 ID，如 M3.1.3
     title          TEXT NOT NULL,
-    status         TEXT CHECK (status IN ('Todo', 'Doing', 'Done', 'Blocked')) DEFAULT 'Todo',
+    status         TEXT CHECK (status IN ('Todo', 'Doing', 'Done', 'Blocked')) DEFAULT 'Todo', -- GitHub Actions 僅寫入 Todo/Done；Doing/Blocked 為保留值，供手動更新或未來功能使用
     priority       TEXT,
     assignee_email TEXT,
     deadline       DATE,
@@ -72,6 +83,20 @@ CREATE TABLE milestones (
     is_completed   BOOLEAN DEFAULT FALSE,
     UNIQUE(project_id, milestone_name)
 );
+
+-- 6. updated_at 自動更新觸發器
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER tasks_sync_updated_at
+    BEFORE UPDATE ON tasks_sync
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
 ```
 
 ---
@@ -132,6 +157,24 @@ USING (
         WHERE user_id = auth.uid()
     )
 );
+
+-- profiles
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "profiles: users can view own profile"
+ON profiles FOR SELECT
+USING (id = auth.uid());
+
+CREATE POLICY "profiles: users can update own profile"
+ON profiles FOR UPDATE
+USING (id = auth.uid());
+
+-- project_access
+ALTER TABLE project_access ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "project_access: users can view own entries"
+ON project_access FOR SELECT
+USING (user_id = auth.uid());
 ```
 
 > GitHub Actions 使用 `service_role` key 寫入，不受 RLS 限制。前端使用 `anon` key，受 RLS 控制。
@@ -156,7 +199,7 @@ CREATE INDEX idx_access_user      ON project_access(user_id);
 | 資料表 | 寫入時機 | 更新時機 | 刪除政策 |
 | :--- | :--- | :--- | :--- |
 | `projects` | 首次 push 時 Actions 自動建立 | repo 名稱變更時 | 人工刪除 |
-| `tasks_sync` | 每次 push `_Projects/*.md` | Actions Upsert（key：project_id + external_id） | 隨專案刪除 |
+| `tasks_sync` | 每次 push `.md` 文件 | Actions Upsert（key：project_id + external_id） | 隨專案刪除 |
 | `milestones` | 每次 push `WBS.md` | Actions Upsert（key：project_id + milestone_name） | 隨專案刪除 |
 | `profiles` | 使用者首次登入時建立 | 使用者更新個人資料 | 使用者刪除帳號時 |
 | `project_access` | PM 手動新增成員 | 角色變更時 | 移除成員時 |
@@ -164,5 +207,5 @@ CREATE INDEX idx_access_user      ON project_access(user_id);
 ---
 
 **文件版本**：v1.0
-**最後更新**：2026-04-29
+**最後更新**：2026-05-06
 **狀態**：草稿（Draft）

@@ -1,8 +1,19 @@
+---
+project: Node_PM
+doc_type: FeatureSpec
+status: draft
+phase: planning
+priority: high
+owner: PM
+updated: 2026-05-06
+tags: [github-actions, pipeline, sync]
+---
+
 # GitHub Actions 資料同步管道｜設計規格書
 
 **版本**：v1.0
 **文件類型**：核心功能規格
-**依賴**：文件規範_YAML設計規格書.md、WBS設計規格書.md、Supabase_Schema設計規格書.md
+**前置依賴**：文件規範_YAML設計規格書.md、WBS設計規格書.md、Supabase_Schema設計規格書.md
 
 ---
 
@@ -14,10 +25,10 @@
 
 ### 1.2 解決方案
 
-在每個 GitHub Repo 設定 **GitHub Actions Workflow**，偵測 `_Projects/` 目錄下的 `.md` 文件變更，觸發 Python 腳本解析結構化資料並寫入 Supabase。
+在每個 GitHub Repo 設定 **GitHub Actions Workflow**，偵測 `.md` 文件變更，觸發 Python 腳本解析結構化資料並寫入 Supabase。
 
 ```
-git push（含 _Projects/ 下 .md 變更）
+git push（含 .md 變更）
     ↓
 GitHub Actions 觸發
     ↓
@@ -37,7 +48,7 @@ Web App 即時更新
 
 ### 2.1 Workflow 設定
 
-觸發條件：**push 到 main branch 且變更檔案位於 `_Projects/` 目錄下**
+觸發條件：**push 到 main branch 且有 `.md` 文件變更**
 
 ```yaml
 # .github/workflows/sync_to_supabase.yml
@@ -49,7 +60,7 @@ on:
     branches:
       - main
     paths:
-      - '_Projects/**/*.md'
+      - '**/*.md'
 
 jobs:
   sync:
@@ -74,8 +85,8 @@ jobs:
 
 | 檔案位置 | 觸發 Actions | 寫入 Supabase | 說明 |
 | :--- | :--- | :--- | :--- |
-| `_Projects/**/*.md` | ✅ | ✅ | 專案進度文件 |
-| 其他路徑的 `.md` | ❌ | ❌ | 知識文件、設計文件，僅同步至 Obsidian |
+| `**/*.md` | ✅ | ✅ | 專案進度文件（腳本以 `project` frontmatter 是否存在過濾） |
+| 其他檔案（.py/.js 等） | ❌ | ❌ | 程式碼、設定檔，腳本直接跳過 |
 
 ---
 
@@ -88,7 +99,7 @@ jobs:
 | `project` | `projects.name` | 用於關聯 project_id |
 | `doc_type` | `yaml_data.doc_type` | 存入 JSONB |
 | `status` | `yaml_data.status` | 存入 JSONB |
-| `phase` | `projects.current_phase`（WBS 文件）/ `yaml_data.phase`（其他文件） | WBS 的 `phase` 直接更新專案宏觀階段 |
+| `phase` | `projects.current_phase`（WBS 文件）/ `yaml_data.phase`（其他文件） | WBS 代表專案整體進度，直接更新主表宏觀狀態；其他文件的 phase 只是文件本身的撰寫階段，存入 JSONB 即可 |
 | `priority` | `priority` | 直接欄位 |
 | `owner` | 對應 `team` 查找 `assignee_email` | 角色縮寫 → email |
 | `updated` | `updated_at` | 文件更新時間 |
@@ -159,7 +170,7 @@ def resolve_email(role, team_map):
     entry = team_map.get(role, {})
     return entry.get('email') if isinstance(entry, dict) else None
 
-def parse_wbs_tasks(content, project_id, team_map):
+def parse_wbs_tasks(content, project_id, team_map, doc_yaml_data=None):
     pattern = re.compile(
         r'- \[( |x)\] (M[\d.]+) (.+?) \[owner:: (\w+):[\w一-鿿]+\](?: #(\d{4}-\d{2}-\d{2}))?',
         re.MULTILINE
@@ -174,7 +185,8 @@ def parse_wbs_tasks(content, project_id, team_map):
             'status': 'Done' if completed == 'x' else 'Todo',
             'assignee_email': resolve_email(role, team_map),
             'deadline': deadline or None,
-            'yaml_data': {}
+            'priority': doc_yaml_data.get('priority') if doc_yaml_data else None,
+            'yaml_data': doc_yaml_data or {}
         })
     return tasks
 
@@ -188,6 +200,8 @@ def parse_milestones(content, project_id):
     )
     for m in row_pattern.finditer(section.group(1)):
         name, planned, actual, status = m.groups()
+        if not planned:  # 跳過表格標題列與分隔列（無有效日期）
+            continue
         milestones.append({
             'project_id': project_id,
             'milestone_name': name.strip(),
@@ -206,14 +220,18 @@ def sync_file(md_path):
     phase = meta.get('phase') if meta.get('doc_type') == 'WBS' else None
     project_id = get_or_create_project(REPO_FULL_NAME, meta['project'], current_phase=phase)
     team_map = meta.get('team', {})
-    tasks = parse_wbs_tasks(post.content, project_id, team_map)
+    doc_yaml_data = {
+        k: meta.get(k) for k in ('doc_type', 'status', 'phase', 'priority', 'owner', 'updated', 'total_tasks', 'module_count')
+        if meta.get(k) is not None
+    }
+    tasks = parse_wbs_tasks(post.content, project_id, team_map, doc_yaml_data)
     if tasks:
         supabase.table('tasks_sync').upsert(tasks, on_conflict='project_id,external_id').execute()
     milestones = parse_milestones(post.content, project_id)
     if milestones:
         supabase.table('milestones').upsert(milestones, on_conflict='project_id,milestone_name').execute()
 
-for md_path in Path('_Projects').rglob('*.md'):
+for md_path in Path('.').rglob('*.md'):
     try:
         sync_file(md_path)
         print(f'✅ Synced: {md_path}')
@@ -249,5 +267,5 @@ for md_path in Path('_Projects').rglob('*.md'):
 ---
 
 **文件版本**：v1.0
-**最後更新**：2026-04-29
+**最後更新**：2026-05-06
 **狀態**：草稿（Draft）

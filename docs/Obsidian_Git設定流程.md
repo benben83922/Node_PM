@@ -1,6 +1,6 @@
 ---
 project: Node_PM
-doc_type: setup_guide
+doc_type: Other
 status: draft
 phase: planning
 priority: high

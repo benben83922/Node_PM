@@ -1,8 +1,19 @@
+---
+project: Node_PM
+doc_type: FeatureSpec
+status: draft
+phase: planning
+priority: high
+owner: PM
+updated: 2026-05-06
+tags: [github, sync, obsidian, submodule]
+---
+
 # GitHub 同步系統｜設計規格書
 
 **版本**：v1.1
 **文件類型**：核心功能規格
-**依賴**：Obsidian 已安裝、Git 已安裝、GitHub repo 已建立
+**前置依賴**：Obsidian 已安裝、Git 已安裝、GitHub repo 已建立
 
 ---
 
@@ -32,31 +43,36 @@ Dataview 重新渲染儀表板
 
 ### 2.1 初始化設定
 
-每個專案目錄對應一個 GitHub repo：
+每個專案目錄對應一個 GitHub repo，以 submodule 方式鑲嵌進 Vault 父儲存庫：
 
 ```bash
-# 初次設定：clone 所有專案到 Vault
-cd ~/ObsidianVault/_Projects/
+# 初次設定：初始化父儲存庫（Vault 根目錄，僅首次執行一次）
+cd ~/ObsidianVault
+git init
 
-git clone https://github.com/your-org/project-a.git ProjectA
-git clone https://github.com/your-org/project-alpha.git ProjectAlpha
-git clone https://github.com/your-org/project-beta.git ProjectBeta
+# 將各專案加入為 submodule（直接在 Vault 根目錄）
+git submodule add https://github.com/your-org/project-a ProjectA
+git submodule add https://github.com/your-org/project-alpha ProjectAlpha
+git submodule add https://github.com/your-org/project-beta ProjectBeta
+
+# 開啟稀疏檢出：每個 submodule 只同步 .md 文件
+git submodule foreach 'git sparse-checkout init --cone && git sparse-checkout set "/**/*.md" ".gitignore" ".gitmodules"'
+git submodule foreach 'git sparse-checkout reapply'
 ```
 
 執行後的目錄結構：
 
 ```
-~/ObsidianVault/_Projects/
-  ├── ProjectA/
-  │   ├── .git/
+~/ObsidianVault/
+  ├── .git/          ← 父儲存庫
+  ├── .gitmodules
+  ├── ProjectA/      ← submodule（僅含 .md 文件）
   │   ├── PRD.md
   │   ├── ERD.md
   │   └── WBS.md
-  ├── ProjectAlpha/
-  │   ├── .git/
+  ├── ProjectAlpha/  ← submodule
   │   └── ...
-  └── ProjectBeta/
-      ├── .git/
+  └── ProjectBeta/   ← submodule
       └── ...
 ```
 
@@ -76,6 +92,7 @@ git clone https://github.com/your-org/project-beta.git ProjectBeta
 
 | 設定項目 | 建議值 | 說明 |
 | :--- | :--- | :--- |
+| **Update submodules** | 開啟 | 必須開啟，讓外掛抓取 submodule 內的最新文件 |
 | **Auto pull interval (minutes)** | `1` | 每 1 分鐘自動 pull |
 | **Pull on startup** | 開啟 | 開啟 Obsidian 時立即 pull |
 | **Auto push interval** | `0`（停用）或依需求 | 純讀取成員設為 0 |
@@ -121,16 +138,17 @@ Git 以行（line）為單位比對差異，只有「兩人同時修改同一行
 ## 五、新增專案時的操作流程
 
 ```bash
-# Step 1：Clone 新專案到 Vault
-cd ~/ObsidianVault/_Projects/
-git clone https://github.com/your-org/new-project.git NewProject
+# Step 1：在 Vault 根目錄加入新 submodule
+cd ~/ObsidianVault
+git submodule add https://github.com/your-org/new-project NewProject
 
-# Step 2：確認 .git 目錄存在
-ls -la NewProject/
+# Step 2：開啟稀疏檢出，只同步 .md 文件
+git -C NewProject sparse-checkout init --cone
+git -C NewProject sparse-checkout set "/**/*.md" ".gitignore" ".gitmodules"
 
 # Step 3：在 Obsidian 中重新整理 Vault
 # Ctrl+Shift+P → 搜尋 "Reload Vault"
-# 外掛會自動偵測新目錄並納入同步範圍
+# 外掛會自動偵測新 submodule 並納入同步範圍
 ```
 
 ---
@@ -160,11 +178,11 @@ cat ~/.ssh/id_ed25519.pub
 ssh -T git@github.com
 
 # 更新現有 repo 使用 SSH（而非 HTTPS）
-git -C ~/ObsidianVault/_Projects/ProjectA remote set-url origin git@github.com:your-org/project-a.git
+git -C ~/ObsidianVault/ProjectA remote set-url origin git@github.com:your-org/project-a.git
 ```
 
 ---
 
 **文件版本**：v1.1
-**最後更新**：2026-04-29
+**最後更新**：2026-05-06
 **狀態**：草稿（Draft）

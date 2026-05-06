@@ -1,4 +1,17 @@
+---
+project: Node_PM
+doc_type: FeatureSpec
+status: deprecated
+phase: planning
+priority: low
+owner: PM
+updated: 2026-05-06
+tags: [nlq, deprecated]
+---
+
 # OpenClaw 自然語言查詢｜設計規格書
+
+> ⚠️ 此文件已廢棄（Deprecated）。已由 [NemoClaw + Discord Agent 設計規格書](./NemoClaw_Discord_Agent設計規格書.md) 取代，通訊頻道改為 Discord + NemoClaw 沙盒方案。
 
 **版本**：v1.0
 **文件類型**：核心功能規格
@@ -27,7 +40,7 @@ PM 用 Telegram / Slack 提問
         ↓
 OpenClaw 收到問題
         ↓
-OpenClaw 搜索 ~/ObsidianVault/_Projects/ 目錄
+OpenClaw 搜索 ~/ObsidianVault/ 目錄
         ↓
 讀取相關 .md 文件（frontmatter + 正文）
         ↓
@@ -69,8 +82,8 @@ LLM 整理後回答，標明來源文件
 你是我的專案管理 AI 助理，負責幫助我快速掌握多個並行軟體專案的狀態。
 
 【知識庫結構】
-我的所有專案文件儲存在本地目錄 ~/ObsidianVault/_Projects/，
-每個子目錄對應一個專案（如 _Projects/ProjectA/、ProjectAlpha/）。
+我的所有專案文件儲存在本地目錄 ~/ObsidianVault/，
+每個子目錄對應一個專案（如 ProjectA/、ProjectAlpha/）。
 每份 .md 文件頂部含有 YAML Frontmatter，結構如下：
   project: 專案名稱
   doc_type: 文件類型（PRD / ERD / Architecture / WBS / API / BDD 等）
@@ -175,7 +188,7 @@ OpenClaw 的回答應遵循以下格式：
 排除目錄：.git/
 ```
 
-> OpenClaw 索引整個 Vault（含 `_Projects/` 下的專案文件與其他知識文件），可回答跨越專案進度與個人知識庫的問題。
+> OpenClaw 索引整個 Vault（含各專案子目錄的文件），可回答跨越專案進度與個人知識庫的問題。
 
 ### 5.2 通訊頻道設定
 
@@ -239,5 +252,5 @@ OpenClaw 查找所有 priority = critical 且 status != approved 的文件，
 ---
 
 **文件版本**：v1.0
-**最後更新**：2026-04-25
-**狀態**：草稿（Draft）
+**最後更新**：2026-05-06
+**狀態**：廢棄（Deprecated）
