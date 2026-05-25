@@ -1,0 +1,37 @@
+services:
+  openclaw-gateway:
+    image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:2026.5.20}
+    pull_policy: if_not_present
+    container_name: openclaw-discord
+    restart: unless-stopped
+    user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
+
+    ports:
+      - "127.0.0.1:18789:18789"
+
+    environment:
+      - NODE_ENV=production
+      - OPENCLAW_GATEWAY_BIND=lan
+      - OPENCLAW_ALLOW_INSECURE_PRIVATE_WS=true
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+
+    volumes:
+      - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
+      - ${OPENCLAW_CONFIG_DIR}/workspace:/home/node/.openclaw/workspace
+      - ${VAULT_PATH}:/vault
+
+    command: ["openclaw", "gateway"]
+
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:18789/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID

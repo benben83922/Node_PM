@@ -1,0 +1,11 @@
+# Obsidian Vault 專案清單
+# 格式：<Git URL> [資料夾名稱（選填，預設從 URL 取得）]
+# 每行一個專案，# 開頭為註解
+
+# 主要 Obsidian 筆記與專案資料夾
+https://github.com/username/obsidian_test.git
+
+# 其他專案
+https://github.com/username/project-alpha.git
+https://github.com/username/project-beta.git  beta
+https://github.com/username/work-notes.git    work

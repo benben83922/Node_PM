@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # -----------------------------------------------------------------
+  # A 容器：Discord Bot (自動從 Docker Hub 拉取)
+  # -----------------------------------------------------------------
+  discord-agent:
+    image: ${DISCORD_BOT_IMAGE}
+    container_name: discord-agent
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # 讓容器可穿透回 WSL 宿主機
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # 讓容器可呼叫宿主機的 docker exec
+    environment:
+      - DISCORD_TOKEN=${DISCORD_BOT_TOKEN}
+      - NEMOCLAW_CONTAINER=${NEMOCLAW_CONTAINER:-openshell-cluster-nemoclaw}
+      - LOG_LEVEL=${LOG_LEVEL}
+
+  # -----------------------------------------------------------------
+  # B 容器：NemoClaw Agent 沙盒
+  # -----------------------------------------------------------------
+  # nemoclaw:
+  #   image: nemoclaw-image:latest
+  #   container_name: nemoclaw-agent
+  #   restart: unless-stopped
+  #   ports:
+  #     - "${NEMOCLAW_PORT}:8000" # 將宿主機 Port 映射到容器內的 8000
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway" # 建立穿透回 WSL 宿主機的魔術域名
+  #   networks:
+  #     - nemo-network
+  #   volumes:
+  #     - ${VAULT_PATH}:/vault  # 掛載 Vault，讓 NemoClaw 可讀寫本地文件
+  #   environment:
+  #     - NIM_API_KEY=${NIM_API_KEY}
+  #     - INFERENCE_BASE_URL=${INFERENCE_BASE_URL}
+  #     - POLICY_PRESET=${POLICY_PRESET}
+  #   # 防翻車腳本：採用非互動式 onboard，並強制等待 WSL 程式就緒後才啟動
+  #   command: >
+  #     sh -c "
+  #     echo '==============================================';
+  #     echo '🚀 [NemoClaw] 開始探測 WSL 程式 (Port: ${WSL_APP_PORT})...';
+  #     echo '==============================================';
+  #     until wget -qO- http://host.docker.internal:${WSL_APP_PORT}/health > /dev/null 2>&1; do
+  #       echo '⏳ WSL 程式尚未就緒或連接埠未開啟，2秒後重試...';
+  #       sleep 2;
+  #     done;
+  #     echo '✅ [NemoClaw] WSL 通道驗證成功！開始執行非互動式 Onboard...';
+  #     nemoclaw onboard \
+  #       --non-interactive -y --yes-i-accept-third-party-software \
+  #       ${GPU_FLAG} \
+  #       --provider ${INFERENCE_PROVIDER} \
+  #       --model ${INFERENCE_MODEL} && \
+  #     echo '✅ [NemoClaw] Onboard 完成，啟動 Agent 服務...' && \
+  #     nemoclaw my-assistant connect
+  #     "
