@@ -213,7 +213,10 @@ setup_openclaw_config() {
 OPENCLAW_IMAGE=${OPENCLAW_IMAGE}
 OPENCLAW_CONFIG_DIR=/home/node/.openclaw
 OPENCLAW_WORKSPACE_DIR=/home/node/.openclaw/workspace
-OPENCLAW_GATEWAY_BIND=loopback
+# bind=lan resolves to 0.0.0.0 inside the container so Docker's published
+# 127.0.0.1:18789 port-forward can reach it. loopback binds the app to the
+# container's own 127.0.0.1, which Docker DNAT never hits (connection reset).
+OPENCLAW_GATEWAY_BIND=lan
 OPENCLAW_GATEWAY_PORT=18789
 OPENCLAW_ALLOW_INSECURE_PRIVATE_WS=true
 EOF
@@ -238,7 +241,7 @@ EOF
   "gateway": {
     "mode": "local",
     "port": 18789,
-    "bind": "loopback",
+    "bind": "lan",
     "auth": {
       "mode": "token",
       "token": "${gateway_token}"
