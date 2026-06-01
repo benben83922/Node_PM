@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notion 同步規劃 · 討論彙整</title>
+<style>
+  :root{
+    --bg:#0d1117; --bg2:#0a0e14; --card:#161b22; --card2:#1c2330;
+    --ink:#c9d1d9; --ink-strong:#e6edf3; --muted:#8b949e; --line:#2a313c;
+    --brand:#58a6ff; --brand-soft:rgba(88,166,255,.13);
+    --good:#3fb950; --good-soft:rgba(63,185,80,.13);
+    --warn:#d29922; --warn-soft:rgba(210,153,34,.14);
+    --bad:#f85149; --bad-soft:rgba(248,81,73,.13);
+    --code:#010409; --code-ink:#9cdcfe;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Segoe UI","PingFang TC","Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif;
+    line-height:1.78; font-size:16px; -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:rgba(88,166,255,.3);}
+
+  /* Layout: left sidebar + content */
+  .layout{display:flex; gap:34px; max-width:1180px; margin:0 auto; padding:0 24px;}
+  .sidebar{
+    width:236px; flex-shrink:0; position:sticky; top:0; align-self:flex-start;
+    height:100vh; padding:34px 0; display:flex; flex-direction:column;
+  }
+  .brand-mark{padding:0 16px 22px; border-bottom:1px solid var(--line); margin-bottom:18px;}
+  .brand-mark .eyebrow{color:var(--brand); font-weight:700; letter-spacing:.1em; font-size:11px; text-transform:uppercase;}
+  .brand-mark .name{font-size:18px; font-weight:700; color:var(--ink-strong); margin-top:6px; line-height:1.35;}
+  .brand-mark .date{font-size:12px; color:var(--muted); margin-top:6px;}
+
+  nav.tabs{display:flex; flex-direction:column; gap:4px; overflow-y:auto;}
+  nav.tabs button{
+    border:none; background:transparent; color:var(--muted); text-align:left;
+    padding:11px 16px; border-radius:10px; font-size:14.5px; font-weight:600;
+    cursor:pointer; transition:.16s; font-family:inherit; display:flex; align-items:center; gap:10px;
+    border-left:3px solid transparent;
+  }
+  nav.tabs button .dot{width:7px; height:7px; border-radius:50%; background:var(--line); transition:.16s; flex-shrink:0;}
+  nav.tabs button:hover{background:var(--card); color:var(--ink);}
+  nav.tabs button.active{background:var(--brand-soft); color:var(--brand); border-left-color:var(--brand);}
+  nav.tabs button.active .dot{background:var(--brand);}
+
+  .content{flex:1; min-width:0; padding:38px 0 90px;}
+
+  header.page-head{margin-bottom:6px;}
+  header.page-head h1{font-size:29px; margin:0 0 8px; line-height:1.3; color:var(--ink-strong);}
+  .flow{
+    margin:14px 0 4px; padding:13px 16px; background:var(--brand-soft);
+    border:1px solid rgba(88,166,255,.2); border-radius:12px; font-weight:600; color:#9ecbff; font-size:14.5px;
+    display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+  }
+  .flow .arrow{color:var(--brand); opacity:.7;}
+
+  /* Panels */
+  .panel{display:none; animation:fade .28s ease;}
+  .panel.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  h2{font-size:24px; margin:6px 0 4px; color:var(--ink-strong);}
+  h3{font-size:17px; margin:28px 0 6px; color:var(--ink-strong);}
+  p{margin:10px 0;}
+  .lead{font-size:17px; color:var(--muted); margin-top:0;}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px 22px; margin:16px 0; box-shadow:var(--shadow);}
+  ul,ol{margin:10px 0; padding-left:22px;}
+  li{margin:6px 0;}
+  strong{color:var(--ink-strong);}
+  code{background:var(--card2); color:#9cdcfe; padding:2px 6px; border-radius:6px; font-size:.88em; font-family:"SF Mono",Consolas,Menlo,monospace; border:1px solid var(--line);}
+  pre{background:var(--code); color:var(--code-ink); padding:16px 18px; border-radius:12px; overflow:auto; font-size:13.5px; line-height:1.65; font-family:"SF Mono",Consolas,Menlo,monospace; border:1px solid var(--line);}
+  pre.diagram{color:#7fb4e8;}
+
+  .note{border-left:4px solid var(--brand); background:var(--brand-soft); padding:12px 16px; border-radius:0 10px 10px 0; margin:14px 0;}
+  .ok{border-left:4px solid var(--good); background:var(--good-soft); padding:12px 16px; border-radius:0 10px 10px 0; margin:14px 0;}
+  .warn{border-left:4px solid var(--warn); background:var(--warn-soft); padding:12px 16px; border-radius:0 10px 10px 0; margin:14px 0;}
+  .bad{border-left:4px solid var(--bad); background:var(--bad-soft); padding:12px 16px; border-radius:0 10px 10px 0; margin:14px 0;}
+
+  .tag{display:inline-block; font-size:12px; font-weight:700; padding:2px 9px; border-radius:999px; vertical-align:middle;}
+  .t-ok{background:var(--good-soft); color:var(--good);}
+  .t-warn{background:var(--warn-soft); color:var(--warn);}
+  .t-bad{background:var(--bad-soft); color:var(--bad);}
+  .t-brand{background:var(--brand-soft); color:var(--brand);}
+
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:14.5px; background:var(--card); border-radius:12px; overflow:hidden; box-shadow:var(--shadow);}
+  th,td{text-align:left; padding:11px 14px; border-bottom:1px solid var(--line); vertical-align:top;}
+  th{background:var(--card2); font-size:12.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em;}
+  tr:last-child td{border-bottom:none;}
+  td b, th b{color:var(--ink-strong);}
+
+  .pill-row{display:flex; gap:10px; flex-wrap:wrap; margin:14px 0;}
+  .pill{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 14px; font-size:14px; box-shadow:var(--shadow); flex:1 1 200px;}
+  .pill b{display:block; font-size:13px; color:var(--brand); font-weight:700; margin-bottom:2px;}
+
+  .steps{counter-reset:s; list-style:none; padding:0;}
+  .steps li{counter-increment:s; position:relative; padding:14px 16px 14px 56px; background:var(--card); border:1px solid var(--line); border-radius:12px; margin:10px 0; box-shadow:var(--shadow);}
+  .steps li::before{content:counter(s); position:absolute; left:14px; top:14px; width:28px; height:28px; background:var(--brand); color:#06121f; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px;}
+
+  .badge-chosen{display:inline-block; background:var(--good-soft); color:var(--good); border:1px solid rgba(63,185,80,.4); font-size:12px; font-weight:700; padding:3px 12px; border-radius:999px; margin-left:8px;}
+
+  footer{margin-top:42px; padding-top:20px; border-top:1px solid var(--line); color:var(--muted); font-size:13px;}
+  footer a, .src a{color:var(--brand); text-decoration:none;}
+  footer a:hover, .src a:hover{text-decoration:underline;}
+  .src{font-size:13px; color:var(--muted);}
+
+  /* Responsive: collapse sidebar to top */
+  @media (max-width:820px){
+    .layout{flex-direction:column; gap:0; padding:0 16px;}
+    .sidebar{width:auto; height:auto; position:sticky; top:0; padding:14px 0; background:var(--bg); z-index:30; border-bottom:1px solid var(--line);}
+    .brand-mark{display:none;}
+    nav.tabs{flex-direction:row; overflow-x:auto; gap:6px; padding-bottom:4px;}
+    nav.tabs button{white-space:nowrap; border-left:none; border-bottom:3px solid transparent; border-radius:8px;}
+    nav.tabs button.active{border-left:none;}
+    nav.tabs button .dot{display:none;}
+    .content{padding:24px 0 70px;}
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ===== Left Sidebar ===== -->
+  <aside class="sidebar">
+    <div class="brand-mark">
+      <div class="eyebrow">Notion 同步規劃</div>
+      <div class="name">GitHub → Notion<br>單向鏡像 + 多人協作</div>
+      <div class="date">討論彙整 · 2026-06-01</div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="active" data-tab="overview"><span class="dot"></span>需求與結論</button>
+      <button data-tab="fork"><span class="dot"></span>核心矛盾：事實來源</button>
+      <button data-tab="modes"><span class="dot"></span>三種同步模式</button>
+      <button data-tab="arch"><span class="dot"></span>最終架構</button>
+      <button data-tab="risks"><span class="dot"></span>殘留風險與防護</button>
+      <button data-tab="how"><span class="dot"></span>怎麼同步 · 技術選型</button>
+      <button data-tab="cost"><span class="dot"></span>要付費嗎</button>
+      <button data-tab="plan"><span class="dot"></span>下一步</button>
+      <button data-tab="twoway"><span class="dot"></span>流程演進：受控雙向</button>
+      <button data-tab="wbs"><span class="dot"></span>WBS 狀態與失真</button>
+      <button data-tab="final"><span class="dot"></span>三級總覽 · 定案</button>
+    </nav>
+  </aside>
+
+  <!-- ===== Content ===== -->
+  <main class="content">
+
+  <!-- ============ 需求與結論 ============ -->
+  <section class="panel active" id="overview">
+    <header class="page-head"><h1>需求與結論</h1></header>
+    <div class="flow">
+      GitHub（事實來源） <span class="arrow">→</span> Obsidian-Git <span class="arrow">→</span> 各自本地 OpenClaw <span class="arrow">→</span> 一個 Action <span class="arrow">→</span> Notion（唯讀鏡像）
+    </div>
+    <p class="lead">在既有的「GitHub → Obsidian → OpenClaw → Discord」知識系統之上，希望文件被修改時也能同步到 Notion，讓多人一起閱讀，且<strong>不走付費方案</strong>。</p>
+
+    <div class="ok">
+      <strong>一句話結論：</strong>把 Notion 當成 GitHub 的<strong>單向唯讀鏡像</strong>（編輯一律走 OpenClaw / Obsidian），用<strong>一個中央 GitHub Action</strong> 在 push 時把 <code>.md</code> 推上 Notion。同步機制<strong>全程 0 元</strong>；只要 Notion 工作區維持<strong>單人 + 公開發佈</strong>給團隊讀，整套免費。
+    </div>
+
+    <h3>討論是怎麼一步步收斂的</h3>
+    <ol class="steps">
+      <li><strong>提出需求</strong>：文件改動同步到 Notion，多人讀／編輯，免費。</li>
+      <li><strong>點出核心矛盾</strong>：不可能在沒有「真雙向同步」的前提下，讓 GitHub 與 Notion 同時當寫入主控。先定<strong>事實來源</strong>。</li>
+      <li><strong>一度選了雙向（C）</strong>：設計過「檔案級 last-write-wins + 狀態表 + 衝突備份」的方案，但坦白它是維護地獄。</li>
+      <li><strong>關鍵轉折</strong>：改成「所有編輯都走 OpenClaw → GitHub → 單向推 Notion」，<strong>跨系統雙向衝突直接消失</strong>，退回最乾淨的 A 模式。</li>
+      <li><strong>最終架構</strong>：GitHub 當事實來源、成員皆協作者、各自本地 OpenClaw、Notion 單向鏡像 —— 本質是<strong>標準 Git 多人協作</strong>。</li>
+      <li><strong>確認費用</strong>：API / Actions / 轉換套件全免費；唯一付費陷阱是 Notion 自己的方案限制。</li>
+    </ol>
+
+    <div class="note">
+      <strong>關鍵心法：</strong>「多人一起編輯」與「免費」會打架。把編輯收斂到單一路徑（OpenClaw/Obsidian），Notion 退成唯讀，才能同時免費又無衝突。
+    </div>
+  </section>
+
+  <!-- ============ 核心矛盾：事實來源 ============ -->
+  <section class="panel" id="fork">
+    <header class="page-head"><h1>核心矛盾：誰是事實來源？</h1></header>
+    <p class="lead">所有設計分歧都源自一個問題——文件的「編輯權威來源（single source of truth）」放在哪裡。</p>
+
+    <div class="bad">
+      <strong>不可違反的原則：</strong>沒有「真雙向同步 + 衝突處理」的前提下，<strong>不可能讓兩個系統同時當寫入主控</strong>。若 GitHub 是事實來源，每次 push 就會用 GitHub 的內容<strong>覆蓋</strong> Notion，團隊在 Notion 上的編輯會被沖掉。
+    </div>
+
+    <h3>原本的單向資料流</h3>
+    <div class="card">
+      <pre class="diagram">Obsidian / OpenClaw 編輯
+   ▼
+GitHub（事實來源）
+   ▼
+Obsidian 地端  +  Supabase（結構化 metadata）</pre>
+    </div>
+    <p>要加 Notion，第一個決定不是「用什麼工具」，而是「<strong>編輯到底發生在哪裡</strong>」。這個決定直接決定方案從「半天搞定」到「長期維護地獄」。</p>
+
+    <div class="warn">
+      <strong>別做的事：</strong>不要嘗試「block 級智慧合併」。當同一份檔案兩邊改了不同段落，想自動合併就是把自己推進坑裡。免費且可維護的雙向，最多只能做到<strong>檔案級 last-write-wins</strong>。
+    </div>
+
+    <h3>關鍵洞察：把寫入收斂成單一路徑</h3>
+    <p>與其處理「GitHub ↔ Notion」雙向衝突，不如讓<strong>所有編輯只走一條路</strong>（OpenClaw / Obsidian → GitHub），Notion 只單向接收。如此一來跨系統衝突<strong>從根本上不存在</strong>，問題退化成大家熟悉的 Git 多人協作。</p>
+  </section>
+
+  <!-- ============ 三種同步模式 ============ -->
+  <section class="panel" id="modes">
+    <header class="page-head"><h1>三種同步模式</h1></header>
+    <p class="lead">依「編輯發生在哪裡」分成三條路。最終選 <strong>A</strong>。</p>
+
+    <table>
+      <tr><th>模式</th><th>編輯發生在</th><th>難度 / 可靠度</th><th>免費</th></tr>
+      <tr><td><b>A. Notion 唯讀鏡像</b> <span class="badge-chosen">最終選定</span></td><td>只在 Obsidian / OpenClaw；Notion 給團隊讀＋留言</td><td><span class="tag t-ok">簡單、超穩</span></td><td><span class="tag t-ok">✅</span></td></tr>
+      <tr><td><b>B. Notion 當編輯權威</b></td><td>只在 Notion → 反向同步回 GitHub → Obsidian</td><td><span class="tag t-warn">中等</span> 要寫 Notion→md 轉換 + 定時抓取</td><td><span class="tag t-ok">✅</span></td></tr>
+      <tr><td><b>C. 真雙向同步</b></td><td>兩邊都能改</td><td><span class="tag t-bad">很難、脆弱</span> 衝突處理 + 語法失真</td><td><span class="tag t-warn">✅ 但成本高</span></td></tr>
+    </table>
+
+    <h3>為什麼放棄 C（真雙向）</h3>
+    <div class="card">
+      <p>即便堅持要 C，免費可維護的做法也只能是「檔案級 last-write-wins + 狀態表 + 衝突備份 + Discord 告警」，不做段落合併：</p>
+      <ul>
+        <li>狀態表 <code>.notion-sync/state.json</code> 記錄每檔的 <code>page_id / md_hash / notion_hash / 時間戳</code>。</li>
+        <li>只有「上次同步後兩邊都改過同一檔」才算衝突 → 依時間戳判贏家，<strong>輸的版本存成 <code>.conflict.md</code> 不刪除</strong>，發 Discord 告警人工處理。</li>
+        <li>必做<strong>回音抑制</strong>：正向寫入 Notion 會更新其 <code>last_edited_time</code>，反向輪詢要靠 hash 比對跳過自己剛寫的，否則無限同步。</li>
+      </ul>
+    </div>
+    <div class="bad">
+      <strong>C 最痛的地方：</strong>雙向 round-trip 一定在 <code>Dataview</code>、<code>[[wikilink]]</code>、Mermaid、frontmatter 這些 Obsidian 專屬語法上掉資料；加上衝突邏輯 + 回音抑制同時 debug，很容易整套崩掉。<strong>結論：避開 C。</strong>
+    </div>
+  </section>
+
+  <!-- ============ 最終架構 ============ -->
+  <section class="panel" id="arch">
+    <header class="page-head"><h1>最終架構 <span class="badge-chosen">A 模式 · 多人協作 + 單向鏡像</span></h1></header>
+    <p class="lead">GitHub 當事實來源、團隊成員皆協作者、各自本地跑 OpenClaw、Notion 是雲端單向唯讀鏡像。本質就是「Git 多人協作 + 一條單向鏡像」。</p>
+
+    <div class="card">
+      <pre class="diagram">                 GitHub（.md，唯一事實來源）
+                 │
+   ┌─────────────┼──────────────┬────────────────────┐
+   │ Obsidian-Git│ Obsidian-Git │ Obsidian-Git        │ 一個中央 GitHub Action
+   ▼             ▼              ▼                      ▼ (push 觸發，單向)
+ 成員A 本地     成員B 本地      成員C 本地             Notion（雲端，唯讀鏡像）
+   │             │              │                      ▲
+ 本地 OpenClaw  本地 OpenClaw   本地 OpenClaw          團隊用瀏覽器讀 / 留言</pre>
+    </div>
+
+    <div class="ok">
+      <strong>可行，而且是最務實的一版。</strong>它把問題從「自創跨系統雙向同步」降回「用 Git 既有機制做多人協作 + 一條單向 Notion 鏡像」——後者是被解決幾十年的老問題。
+    </div>
+
+    <h3>資料流拆解</h3>
+    <table>
+      <tr><th>動作</th><th>路徑</th></tr>
+      <tr><td>讀 / 問</td><td>成員 → 各自本地 OpenClaw → 讀各自同步下來的 vault</td></tr>
+      <tr><td>改</td><td>OpenClaw 改本地檔 → <code>git pull --rebase</code> → commit → push 回 GitHub</td></tr>
+      <tr><td>鏡像</td><td>GitHub push → 中央 Action → 單向推 Notion（沒人在 Notion 編輯）</td></tr>
+    </table>
+
+    <div class="note">
+      <strong>校正一個概念：</strong>Notion 是雲端服務，<strong>沒有「本地副本」</strong>。正確說法是「GitHub → Notion（雲端）單向鏡像」，團隊在瀏覽器讀。
+    </div>
+
+    <h3>這版解掉了什麼</h3>
+    <div class="pill-row">
+      <div class="pill"><b>✅ 跨系統雙向衝突消失</b>Notion 唯讀，無 Notion→GitHub 回寫，反向同步整套不用做</div>
+      <div class="pill"><b>✅ 退回標準 Git 協作</b>衝突交給 git 的 merge / rebase，不必自創機制</div>
+      <div class="pill"><b>✅ 語法失真不再雙向</b>Dataview / wikilink 只正向輸出，沒人改回來</div>
+    </div>
+  </section>
+
+  <!-- ============ 殘留風險與防護 ============ -->
+  <section class="panel" id="risks">
+    <header class="page-head"><h1>殘留風險與三道防護</h1></header>
+    <p class="lead">衝突沒「消失」，是<strong>搬家</strong>到一個小很多、好解很多的地方：單機寫入競態與一般 Git 協作。以下都可解，但別忽略。</p>
+
+    <h3>1. 一台機器上「兩個 git 駕駛」會打架 <span class="tag t-bad">最易踩</span></h3>
+    <p>本地同時有 <strong>Obsidian-Git 插件</strong> 與 <strong>OpenClaw</strong> 都可能碰 git，時序交錯就會亂。</p>
+    <div class="ok">
+      <strong>防護：一台機器只留一個 git 駕駛。</strong>建議讓 OpenClaw 改完檔自己做 <code>pull --rebase → commit → push</code>，Obsidian-Git 只負責「拉下別人的更新」（設成只 pull / 關掉 auto-push）。
+    </div>
+
+    <h3>2. 兩人改同檔同段 → 真的會冒出衝突標記</h3>
+    <p>這是此架構唯一會出現 <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> 的地方。更糟的是 Obsidian-Git 不會幫非技術成員漂亮解衝突，帶標記的壞 <code>.md</code> 會被同步到所有人、甚至<strong>推上 Notion 變垃圾</strong>。</p>
+    <div class="ok">
+      <strong>防護：</strong>① push 前一律 <code>git pull --rebase</code>，失敗自動重試；② Notion 同步 Action 加<strong>防呆</strong>——偵測到含 <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> 衝突標記的檔就<strong>拒絕同步並發 Discord 告警</strong>；③ 縮短 Obsidian-Git auto-pull 間隔（1–2 分鐘）。
+    </div>
+
+    <h3>3. Notion 同步必須「集中跑一份」</h3>
+    <p>GitHub→Notion 用<strong>一個中央 GitHub Action</strong>（push 觸發）即可。若讓每台本地機器也去推 Notion，就變成 N 個寫入者搶同一個 Notion → 又製造競態。</p>
+
+    <h3>4. 最終一致性有延遲</h3>
+    <p>A 改完 push 後，B 的本地要等 Obsidian-Git 下次 pull 才看得到，因此 B 可能在舊版上開始改而撞車。靠第 2 點的 pull-rebase + 短輪詢間隔吸收。</p>
+
+    <h3>5. 稀疏檢出（sparse checkout）的範圍限制</h3>
+    <p>若成員只稀疏檢出部分檔案，他的 OpenClaw 只能改「本地有的檔」；要改範圍外的得先擴大 checkout。是範圍限制，不是 bug。</p>
+
+    <div class="warn">
+      <strong>另一個非衝突風險：內容保真度。</strong>自然語言改檔有不確定性——成員說「更新 X 段」，LLM 可能順手動到別段。建議 OpenClaw 改完把 <code>git diff</code> 回貼 Discord 確認，或讓改動走 PR / 至少留 commit 可回溯。
+    </div>
+  </section>
+
+  <!-- ============ 怎麼同步 · 技術選型 ============ -->
+  <section class="panel" id="how">
+    <header class="page-head"><h1>怎麼把 GitHub 同步到 Notion</h1></header>
+    <p class="lead">機制就是一條 GitHub Action，掛在現有「push → 解析 → 寫 Supabase」那條 pipeline 旁邊。</p>
+
+    <div class="card">
+      <pre class="diagram">git push（.md 變更）
+   ▼
+GitHub Action 觸發
+   ▼
+讀取變更的 .md → 用 martian 轉成 Notion blocks
+   ▼
+呼叫 Notion API，upsert 到 Notion 資料庫對應頁面</pre>
+    </div>
+
+    <h3>需要準備的東西</h3>
+    <ul>
+      <li>一個 Notion <strong>integration token</strong>（在 notion.so/my-integrations 建立，免費），存進 GitHub Secret <code>NOTION_TOKEN</code>。</li>
+      <li>把目標頁面 / 資料庫分享給這個 integration，並把 <code>NOTION_DB_ID</code> 也存進 Secret。</li>
+    </ul>
+
+    <h3>建議：用「一個 Notion Database」承載文件</h3>
+    <p>把所有文件當成<strong>一個 Notion Database 裡的 pages</strong>，Database 的 properties 直接對應 YAML frontmatter：</p>
+    <table>
+      <tr><th>Notion property</th><th>對應 frontmatter</th><th>型別</th></tr>
+      <tr><td>Title</td><td>檔名</td><td>title</td></tr>
+      <tr><td>project / doc_type / status / phase / priority / owner</td><td>同名</td><td>select / text</td></tr>
+      <tr><td>updated</td><td>updated</td><td>date</td></tr>
+      <tr><td><code>_filepath</code> / <code>_repo</code></td><td>repo 內路徑 / repo 名</td><td>text</td></tr>
+    </table>
+    <div class="note">
+      好處：<strong>frontmatter ↔ DB properties（零失真）、正文 ↔ page 內容 blocks</strong>，兩件事分開處理。團隊也直接得到一個能 filter / sort 的看板，等於把 Dataview 搬到 Notion 給多人用。多 repo 用 <code>_repo</code> property 區分。
+    </div>
+
+    <h3>免費技術選型</h3>
+    <table>
+      <tr><th>環節</th><th>免費方案</th><th>說明</th></tr>
+      <tr><td>Notion API</td><td>官方 <code>@notionhq/client</code> + integration token</td><td><span class="tag t-ok">免費</span> 無按次收費</td></tr>
+      <tr><td>md → Notion blocks</td><td><code>@tryfabric/martian</code>（Node）</td><td>開源</td></tr>
+      <tr><td>Notion → md（若做反向）</td><td><code>notion-to-md</code>（Node）</td><td>開源；A 模式用不到</td></tr>
+      <tr><td>觸發 / 排程</td><td>GitHub Actions（push 觸發）</td><td>每次幾十秒</td></tr>
+    </table>
+    <div class="warn">
+      <strong>提醒：</strong>是 Node 工具鏈，與現有的 Supabase Python 腳本各跑各的，互不干擾。
+    </div>
+  </section>
+
+  <!-- ============ 要付費嗎 ============ -->
+  <section class="panel" id="cost">
+    <header class="page-head"><h1>要付費嗎？</h1></header>
+    <p class="lead">同步機制本身 <strong>100% 免費</strong>。唯一可能逼你付費的，是 Notion 自己的方案限制，跟同步技術無關。</p>
+
+    <div class="note">
+      <strong>後續更新：</strong>團隊已<strong>訂閱付費方案</strong>，本頁「單人 + 公開發佈」的免費權宜做法<strong>已不需要</strong>——可直接把團隊加成正式成員、無 block 上限、原生留言。流程也演進為「受控雙向」（非技術人員在 Notion 直接編輯）。詳見 →「流程演進：受控雙向」「三級總覽 · 定案」分頁。
+    </div>
+
+    <h3>三層費用拆解</h3>
+    <table>
+      <tr><th>元件</th><th>費用</th></tr>
+      <tr><td><b>Notion API</b></td><td><span class="tag t-ok">完全免費</span>，無按次收費，僅 3 req/秒速率限制（超過是節流不是收費）</td></tr>
+      <tr><td><b>GitHub Actions</b></td><td>public repo 無限免費；private 每月 2000 分鐘免費（push 觸發每次幾十秒，夠用）</td></tr>
+      <tr><td><b>轉換套件</b>（martian / notion-to-md）</td><td><span class="tag t-ok">開源免費</span></td></tr>
+    </table>
+    <div class="ok"><strong>同步技術本身：0 元。</strong></div>
+
+    <h3 style="color:var(--bad)">⚠️ 唯一付費陷阱：Notion 的方案限制</h3>
+    <div class="bad">
+      Notion 免費方案，工作區<strong>只有 1 人 → 無限 blocks</strong>；一旦加入 <strong>2 人以上 → 整個工作區硬上限 1,000 blocks</strong>，超過後只能讀 / 編輯舊內容，<strong>無法再新增</strong>。你的知識庫是一堆規格書，<strong>幾份文件就會撞破 1,000</strong>。
+    </div>
+
+    <h3>怎麼維持「多人讀 + 全免費」</h3>
+    <div class="ok">
+      既然 Notion 已定為唯讀鏡像，正好有免費解：<strong>工作區只保留你一人（unlimited blocks），把資料庫頁面用「Publish to web / 發佈到網路」開公開連結，團隊用連結讀。</strong>
+    </div>
+    <table>
+      <tr><th>做法</th><th>結果</th></tr>
+      <tr><td>單人工作區 + 公開發佈</td><td><span class="tag t-ok">永遠免費、無限文件</span>；讀者非成員，不觸發 1,000 block 上限；天生唯讀，吻合設計</td></tr>
+      <tr><td>把全團隊加成正式成員</td><td><span class="tag t-bad">撞破 1,000 block → 被迫升 Plus</span>（約 $8–10 / 人 / 月）</td></tr>
+    </table>
+    <div class="warn">
+      <strong>公開發佈的代價：</strong>拿到連結的人都能看（無細緻權限控管），且不能在上面留言 / 編輯。若要「成員身分、能在 Notion 內互動 / 留言」就得回到付費方案。
+    </div>
+
+    <div class="note">
+      <strong>一句話：</strong>同步免費；只要 Notion 工作區維持單人 + 公開發佈給團隊讀，整套免費。要「多人是正式成員、能在 Notion 內互動」才需付費。
+    </div>
+  </section>
+
+  <!-- ============ 下一步 ============ -->
+  <section class="panel" id="plan">
+    <header class="page-head"><h1>下一步</h1></header>
+    <p class="lead">把結論收斂成可以動手的順序。先求穩，別一次把所有風險都打開。</p>
+
+    <h3>落地步驟</h3>
+    <ol class="steps">
+      <li><strong>建 Notion integration（免費）與一個 Database</strong>，properties 對齊 frontmatter；把 <code>NOTION_TOKEN</code>、<code>NOTION_DB_ID</code> 存進 GitHub Secret。</li>
+      <li><strong>寫 <code>scripts/sync_to_notion.mjs</code>（正向）</strong>，在現有 <code>sync_to_supabase.yml</code> 後加一個 step 或獨立 job。</li>
+      <li><strong>把 Notion 工作區設為單人 + 公開發佈</strong>，產生團隊閱讀用的公開連結。</li>
+      <li><strong>每台機器確立單一 git 駕駛</strong>：OpenClaw 自己 <code>pull --rebase / commit / push</code>，Obsidian-Git 只 pull。</li>
+      <li><strong>Action 加衝突標記防呆</strong>：含 <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> 的檔拒絕同步並發 Discord 告警。</li>
+    </ol>
+
+    <h3>建議的保守上線節奏</h3>
+    <div class="note">
+      即使最終是多人協作，也<strong>先只跑正向同步（純鏡像）兩週</strong>，確認 markdown → Notion 的轉換品質與你的文件相容，再把多人寫入 / 防呆機制逐一打開。
+    </div>
+
+    <h3>不建議</h3>
+    <div class="pill-row">
+      <div class="pill"><b>❌ 做真雙向同步（C）</b>免費但脆弱、語法失真、長期維護痛</div>
+      <div class="pill"><b>❌ 讓人在 Notion 直接編輯</b>會被下次 push 覆蓋；Notion 只能唯讀</div>
+      <div class="pill"><b>❌ 每台本地各推 Notion</b>變多寫入者競態，集中在一個 Action</div>
+      <div class="pill"><b>❌ 全團隊加成 Notion 成員</b>撞破 1,000 block 被迫付費；改用公開發佈</div>
+    </div>
+
+    <div class="ok">
+      <strong>總結：</strong>把編輯收斂到 OpenClaw / Obsidian、GitHub 當唯一事實來源、Notion 用一個中央 Action 做單向唯讀鏡像、工作區單人 + 公開發佈給團隊讀。免費、無跨系統衝突，殘留的只是標準 Git 協作問題，用「單一 git 駕駛 + pull-rebase 重試 + Notion 衝突防呆」三道防護即可。
+    </div>
+  </section>
+
+  <!-- ============ 流程演進：受控雙向 ============ -->
+  <section class="panel" id="twoway">
+    <header class="page-head"><h1>流程演進：受控雙向 <span class="badge-chosen">需求變更</span></h1></header>
+    <p class="lead">需求後來變了：要<strong>加入非技術人員，他們直接在 Notion 編輯</strong>，再叫 OpenClaw 同步回 GitHub；技術人員仍直接改本地 <code>.md</code> 上傳。於是系統從「單向鏡像」變成「雙向」。</p>
+
+    <div class="bad">
+      <strong>誠實提醒：</strong>這正是前面刻意避開的<strong>真雙向同步（C 模式）</strong>。技術人員寫 GitHub→Notion、非技術人員寫 Notion→GitHub，只要<strong>同一份文件</strong>在上次同步後兩邊都被改過，就會互相覆蓋、掉資料。
+    </div>
+
+    <div class="card">
+      <pre class="diagram">技術人員 → 改本地 .md → push GitHub ──→ (Action) ──→ Notion
+非技術人員 → 在 Notion 改 ──→ (叫 OpenClaw) ──→ GitHub ←── 同一份檔！</pre>
+    </div>
+
+    <h3>讓它變安全的關鍵：一份文件只有一個「主人」</h3>
+    <p>不要做智慧合併。改用 frontmatter 加 <code>authority</code> 欄位（或用資料夾切分），讓每份文件的權威來源只有一邊——系統層級「雙向」，但<strong>每份檔案都是單向</strong>，衝突機率趨近於零。</p>
+    <table>
+      <tr><th>文件類型</th><th>主人</th><th>方向</th><th>在另一邊</th></tr>
+      <tr><td>技術文件（規格、含 Dataview/WBS）</td><td><b>GitHub</b></td><td>GitHub→Notion 單向</td><td>Notion 頁面<span class="tag t-warn">鎖唯讀</span></td></tr>
+      <tr><td>內容文件（非技術人員寫的部分）</td><td><b>Notion</b></td><td>Notion→GitHub（叫 OpenClaw）</td><td>技術人員<b>不在 git 直接改</b></td></tr>
+    </table>
+
+    <h3>兩個方向怎麼做</h3>
+    <div class="pill-row">
+      <div class="pill"><b>方向一　GitHub → Notion</b>不變：push → 中央 Action → REST API upsert。「GitHub 主人」的文件把 Notion 頁設成員唯讀。</div>
+      <div class="pill"><b>方向二　Notion → GitHub</b>Discord 指令觸發 → 中央 OpenClaw 用 Notion API/MCP 讀頁 → <code>notion-to-md</code> → 由 DB properties 重建 frontmatter → 寫回 <code>.md</code> → pull-rebase → push。</div>
+    </div>
+    <div class="note">
+      <strong>修正先前建議：</strong>反向方向讓 OpenClaw 接 Notion MCP/API 是合理的，但<strong>只用來「讀」Notion</strong>；寫 GitHub 仍由 OpenClaw 用 git 完成，<strong>OpenClaw 絕不直接寫 Notion</strong>。
+    </div>
+
+    <h3>必備三道安全機制</h3>
+    <table>
+      <tr><th>機制</th><th>作用</th></tr>
+      <tr><td><b>狀態表</b> <code>.notion-sync/state.json</code></td><td>每檔記 <code>page_id / md_hash / notion_hash / 時間戳</code></td></tr>
+      <tr><td><b>回音抑制</b></td><td>forward 若 <code>md_hash</code> 未變就跳過、reverse 若 <code>notion_hash</code> 未變就跳過，否則兩方向互相觸發成無限迴圈</td></tr>
+      <tr><td><b>衝突偵測 + 備份</b></td><td>兩邊 hash 都變 → 依時間戳判贏家，輸家存 <code>xxx.conflict.md</code> 不刪除 + 發 Discord 告警</td></tr>
+    </table>
+  </section>
+
+  <!-- ============ WBS 狀態與失真 ============ -->
+  <section class="panel" id="wbs">
+    <header class="page-head"><h1>WBS 任務狀態：會失真嗎？</h1></header>
+    <p class="lead">非技術人員若要在 Notion 改 WBS 裡某個任務的狀態，<strong>會失真——但失真的不是勾選本身，是「把整頁轉回去」這個動作</strong>。</p>
+
+    <h3>分兩段看</h3>
+    <div class="ok">
+      <strong>第一段　checkbox 本身：還好。</strong><code>- [ ] M3.1.3 …</code> 對應 Notion to-do block，打勾 → 轉回就是 <code>- [x]</code>，兩邊都用勾選框表達同一件事，對應乾淨。
+    </div>
+    <div class="bad">
+      <strong>第二段　整頁 <code>notion-to-md</code> 轉回：災難。</strong>為了把勾選帶回 GitHub 而重新序列化整份 WBS，會把文件其他元素全丟進失真的轉換器。
+    </div>
+    <table>
+      <tr><th>WBS 內元素</th><th>整頁轉回會發生什麼</th></tr>
+      <tr><td><code>[owner:: BE:張後端]</code> 行內欄位</td><td>很可能被跳脫成 <code>\[owner:: …\]</code> → <span class="tag t-bad">Supabase 解析 regex 失敗</span></td></tr>
+      <tr><td><code>```dataview</code> 區塊</td><td>語言標記/內容掉失或被跳脫</td></tr>
+      <tr><td><code>## 里程碑</code> 表格</td><td>表格 round-trip 跑版</td></tr>
+      <tr><td>巢狀任務縮排（M3 ▸ M3.1 ▸ M3.1.3）</td><td>縮排被壓平 / 層級改變</td></tr>
+      <tr><td>frontmatter / <code>[[wikilink]]</code> / Mermaid</td><td>漂移或損壞</td></tr>
+    </table>
+    <div class="warn">
+      你以為的 diff 是「一個字元 <code>[ ]</code>→<code>[x]</code>」，實際 push 的卻是「整份檔案被重排」的大 diff。<strong>WBS 是最容易壞的那種文件。</strong>
+    </div>
+
+    <h3>正解：不要整頁轉回，做外科手術式改一行</h3>
+    <div class="card">
+      <pre class="diagram">反向同步（針對 WBS）：
+  讀 Notion 的 to-do blocks
+   → 從 block 文字抓出任務 ID（M3.1.3，穩定錨點）
+   → 比對該 ID 在 WBS.md 那一行的勾選狀態
+   → 只把該行的 [ ] ↔ [x] 翻轉，其他完全不碰</pre>
+    </div>
+    <div class="ok">
+      <strong>更推薦：把 WBS 任務做成 Notion Database。</strong>一列一任務（欄位：任務ID、狀態下拉、Owner、Deadline），非技術人員只改「狀態下拉」，不碰任何 markdown；反向同步讀每列狀態 → 用任務 ID 對回 WBS.md，<strong>只 patch 那一行</strong>。這跟既有的 <code>tasks_sync</code> 資料模型銜接自然，零失真。
+    </div>
+  </section>
+
+  <!-- ============ 三級總覽 · 定案 ============ -->
+  <section class="panel" id="final">
+    <header class="page-head"><h1>三級總覽 · 定案</h1></header>
+    <p class="lead">把演進到最新的完整流程攤開，分三級標示：✅ 完全 OK、⚠️ 可行但有風險、⛔ 紅線。</p>
+
+    <div class="card">
+      <pre class="diagram">                         GitHub（.md，唯一事實來源）
+                         │
+        ┌────────────────┼─────────────────┬──────────────────────────┐
+        │ Obsidian-Git   │ Obsidian-Git    │                          │ 中央 Action
+        ▼ (pull)         ▼ (pull)          ▼                          ▼ (push 觸發, REST API)
+   技術人員A 本地      技術人員B 本地     本地 OpenClaw               Notion（付費工作區）
+        │                                  (讀 vault 回 Discord)        │
+   改 .md → push ───────────────────────────────────────────────►(到 GitHub)
+                                                                       │
+   非技術人員 ──在 Notion 改內容/任務狀態──► 叫中央 OpenClaw 反向同步 ──┘
+                                            (Notion→md→重建 frontmatter→push GitHub)</pre>
+    </div>
+
+    <h3>✅ 完全 OK</h3>
+    <table>
+      <tr><th>環節</th><th>為什麼 OK</th></tr>
+      <tr><td>GitHub 當唯一事實來源</td><td>架構地基，版本可追溯</td></tr>
+      <tr><td>技術人員改 .md → push</td><td>標準 git，本就為多人協作而生</td></tr>
+      <tr><td>Obsidian-Git pull 到各本地 vault</td><td>單向拉取，無衝突</td></tr>
+      <tr><td>OpenClaw 讀本地 vault 回 Discord</td><td>內容在本地、即時、無 API 限制</td></tr>
+      <tr><td>GitHub → Notion 單向同步（REST API）</td><td>確定性腳本，免費，最穩</td></tr>
+      <tr><td>Notion 付費：成員讀 + 留言</td><td>留言不動正文；付費已無 1,000 block 上限</td></tr>
+      <tr><td>frontmatter ↔ Notion DB properties</td><td>結構化對應，零失真</td></tr>
+      <tr><td>任務狀態用「Notion DB 下拉」或「按任務 ID patch 單行」</td><td>只動狀態，其餘 byte 不動，不失真</td></tr>
+      <tr><td>OpenClaw 用 Notion MCP/API 只讀（反向用）</td><td>讀取沒問題；寫 GitHub 由 git 做</td></tr>
+    </table>
+
+    <h3>⚠️ 可行但有風險（要配防護）</h3>
+    <table>
+      <tr><th>環節</th><th>風險</th><th>防護</th></tr>
+      <tr><td>Notion → GitHub 反向同步（整個雙向）</td><td>C 模式，同檔兩邊改會掉資料</td><td><code>authority</code> 一檔一主人，把系統雙向拆成每檔單向</td></tr>
+      <tr><td>同台機器兩個 git 駕駛</td><td>時序交錯弄亂本地 git</td><td>一台只一個駕駛：OpenClaw 自做 git，Obsidian-Git 只 pull</td></tr>
+      <tr><td>兩人改同檔同段</td><td>產生 <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> 衝突標記</td><td>push 前 pull --rebase + 重試；縮短 auto-pull 間隔</td></tr>
+      <tr><td>衝突標記檔被推上 Notion</td><td>壞檔污染 Notion</td><td>Action 偵測 <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> 拒推 + 告警</td></tr>
+      <tr><td>兩方向互相觸發</td><td>無限回音迴圈</td><td>狀態表存雙邊 hash，未變就跳過</td></tr>
+      <tr><td>非技術人員編輯內容型文件後反向</td><td>notion-to-md 掉部分格式</td><td>限定純文字/內容型；反向後回貼 diff 確認</td></tr>
+      <tr><td>反向同步由誰跑</td><td>多人各自觸發 = 多寫入者競態</td><td>集中在一個中央 OpenClaw 實例序列化</td></tr>
+      <tr><td>最終一致性延遲</td><td>有人在舊版上改 → 撞車</td><td>pull-rebase + 短輪詢吸收</td></tr>
+      <tr><td>OpenClaw 自然語言改檔</td><td>LLM 可能動到非目標段（保真度）</td><td>改完回貼 git diff 確認 / 走 PR</td></tr>
+    </table>
+
+    <h3>⛔ 紅線（會壞，別做）</h3>
+    <table>
+      <tr><th>別做</th><th>原因</th></tr>
+      <tr><td>WBS / Dataview 結構化文件用整頁 notion-to-md 反向</td><td>整份重序列化 → Dataview/表格/owner/縮排全壞。改狀態只能按任務 ID patch 單行</td></tr>
+      <tr><td>讓非技術人員在 Notion 直接改結構化文件正文</td><td>同上，這類文件應 GitHub 單向 + Notion 鎖唯讀</td></tr>
+      <tr><td>讓 OpenClaw 直接「寫」Notion</td><td>繞過 GitHub，重新製造雙向衝突，破壞事實來源</td></tr>
+      <tr><td>每台本地機器各自推 Notion</td><td>多寫入者搶同一 Notion → 競態</td></tr>
+      <tr><td>做 block 級智慧合併</td><td>雙向同步最大的坑，免費方案無法可靠維護</td></tr>
+    </table>
+
+    <div class="ok">
+      <strong>定案總結：</strong><b>綠燈</b>＝GitHub 單向出去（→Notion、→各 vault、→OpenClaw 讀）整套 + 任務狀態用 DB 下拉/單行 patch，全穩。<b>黃燈</b>＝Notion→GitHub 反向整體可行，命脈是 <code>authority</code> 一檔一主人，再加狀態表/回音抑制/衝突備份/單一 git 駕駛兜底。<b>紅燈</b>＝結構化文件絕不走整頁反向、OpenClaw 絕不直接寫 Notion。
+    </div>
+  </section>
+
+  <footer>
+    <p class="src"><strong>查證來源：</strong>
+      <a href="https://www.notion.com/help/understanding-block-usage">Notion Help — Understanding block usage</a> ·
+      <a href="https://www.notion.com/pricing">Notion Pricing</a> ·
+      <a href="https://www.notionsender.com/blog/post/notion-free-plan">Notion Free Plan 2026 Guide</a> ·
+      <a href="https://github.com/tryfabric/martian">martian（md → Notion blocks）</a> ·
+      <a href="https://github.com/souvikinator/notion-to-md">notion-to-md</a> ·
+      <a href="https://github.com/makenotion/notion-sdk-js">Notion 官方 SDK</a>
+    </p>
+    <p>本頁為單一 HTML 檔，離線雙擊即可開啟 · 深色護眼模式 · 內容彙整自與 Claude 的規劃討論 · 2026-06-01</p>
+  </footer>
+
+  </main>
+</div>
+
+<script>
+  const tabs = document.querySelectorAll('#tabs button');
+  const panels = document.querySelectorAll('.panel');
+  tabs.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.tab;
+      tabs.forEach(b=>b.classList.toggle('active', b===btn));
+      panels.forEach(p=>p.classList.toggle('active', p.id===id));
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+  });
+</script>
+</body>
+</html>

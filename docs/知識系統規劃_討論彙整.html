@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知識系統規劃 · 討論彙整</title>
+<style>
+  :root{
+    --bg:#0d1117; --bg2:#0a0e14; --card:#161b22; --card2:#1c2330;
+    --ink:#c9d1d9; --ink-strong:#e6edf3; --muted:#8b949e; --line:#2a313c;
+    --brand:#58a6ff; --brand-soft:rgba(88,166,255,.13);
+    --good:#3fb950; --good-soft:rgba(63,185,80,.13);
+    --warn:#d29922; --warn-soft:rgba(210,153,34,.14);
+    --bad:#f85149; --bad-soft:rgba(248,81,73,.13);
+    --code:#010409; --code-ink:#9cdcfe;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Segoe UI","PingFang TC","Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif;
+    line-height:1.78; font-size:16px; -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:rgba(88,166,255,.3);}
+
+  /* Layout: left sidebar + content */
+  .layout{display:flex; gap:34px; max-width:1180px; margin:0 auto; padding:0 24px;}
+  .sidebar{
+    width:236px; flex-shrink:0; position:sticky; top:0; align-self:flex-start;
+    height:100vh; padding:34px 0; display:flex; flex-direction:column;
+  }
+  .brand-mark{padding:0 16px 22px; border-bottom:1px solid var(--line); margin-bottom:18px;}
+  .brand-mark .eyebrow{color:var(--brand); font-weight:700; letter-spacing:.1em; font-size:11px; text-transform:uppercase;}
+  .brand-mark .name{font-size:18px; font-weight:700; color:var(--ink-strong); margin-top:6px; line-height:1.35;}
+  .brand-mark .date{font-size:12px; color:var(--muted); margin-top:6px;}
+
+  nav.tabs{display:flex; flex-direction:column; gap:4px; overflow-y:auto;}
+  nav.tabs button{
+    border:none; background:transparent; color:var(--muted); text-align:left;
+    padding:11px 16px; border-radius:10px; font-size:14.5px; font-weight:600;
+    cursor:pointer; transition:.16s; font-family:inherit; display:flex; align-items:center; gap:10px;
+    border-left:3px solid transparent;
+  }
+  nav.tabs button .dot{width:7px; height:7px; border-radius:50%; background:var(--line); transition:.16s; flex-shrink:0;}
+  nav.tabs button:hover{background:var(--card); color:var(--ink);}
+  nav.tabs button.active{background:var(--brand-soft); color:var(--brand); border-left-color:var(--brand);}
+  nav.tabs button.active .dot{background:var(--brand);}
+
+  .content{flex:1; min-width:0; padding:38px 0 90px;}
+
+  header.page-head{margin-bottom:6px;}
+  header.page-head h1{font-size:29px; margin:0 0 8px; line-height:1.3; color:var(--ink-strong);}
+  .flow{
+    margin:14px 0 4px; padding:13px 16px; background:var(--brand-soft);
+    border:1px solid rgba(88,166,255,.2); border-radius:12px; font-weight:600; color:#9ecbff; font-size:14.5px;
+    display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+  }
+  .flow .arrow{color:var(--brand); opacity:.7;}
+
+  /* Panels */
+  .panel{display:none; animation:fade .28s ease;}
+  .panel.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  h2{font-size:24px; margin:6px 0 4px; color:var(--ink-strong);}
+  h3{font-size:17px; margin:28px 0 6px; color:var(--ink-strong);}
+  p{margin:10px 0;}
+  .lead{font-size:17px; color:var(--muted); margin-top:0;}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px 22px; margin:16px 0; box-shadow:var(--shadow);}
+  ul,ol{margin:10px 0; padding-left:22px;}
+  li{margin:6px 0;}
+  strong{color:var(--ink-strong);}
+  code{background:var(--card2); color:#9cdcfe; padding:2px 6px; border-radius:6px; font-size:.88em; font-family:"SF Mono",Consolas,Menlo,monospace; border:1px solid var(--line);}
+  pre{background:var(--code); color:var(--code-ink); padding:16px 18px; border-radius:12px; overflow:auto; font-size:13.5px; line-height:1.65; font-family:"SF Mono",Consolas,Menlo,monospace; border:1px solid var(--line);}
+  pre.diagram{color:#7fb4e8;}
+
+  .note{border-left:4px solid var(--brand); background:var(--brand-soft); padding:12px 16px; border-radius:0 10px 10px 0; margin:14px 0;}
+  .ok{border-left:4px solid var(--good); background:var(--good-soft); padding:12px 16px; border-radius:0 10px 10px 0; margin:14px 0;}
+  .warn{border-left:4px solid var(--warn); background:var(--warn-soft); padding:12px 16px; border-radius:0 10px 10px 0; margin:14px 0;}
+  .bad{border-left:4px solid var(--bad); background:var(--bad-soft); padding:12px 16px; border-radius:0 10px 10px 0; margin:14px 0;}
+
+  .tag{display:inline-block; font-size:12px; font-weight:700; padding:2px 9px; border-radius:999px; vertical-align:middle;}
+  .t-ok{background:var(--good-soft); color:var(--good);}
+  .t-warn{background:var(--warn-soft); color:var(--warn);}
+  .t-bad{background:var(--bad-soft); color:var(--bad);}
+  .t-brand{background:var(--brand-soft); color:var(--brand);}
+
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:14.5px; background:var(--card); border-radius:12px; overflow:hidden; box-shadow:var(--shadow);}
+  th,td{text-align:left; padding:11px 14px; border-bottom:1px solid var(--line); vertical-align:top;}
+  th{background:var(--card2); font-size:12.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em;}
+  tr:last-child td{border-bottom:none;}
+  td b, th b{color:var(--ink-strong);}
+
+  .pill-row{display:flex; gap:10px; flex-wrap:wrap; margin:14px 0;}
+  .pill{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 14px; font-size:14px; box-shadow:var(--shadow); flex:1 1 200px;}
+  .pill b{display:block; font-size:13px; color:var(--brand); font-weight:700; margin-bottom:2px;}
+
+  .steps{counter-reset:s; list-style:none; padding:0;}
+  .steps li{counter-increment:s; position:relative; padding:14px 16px 14px 56px; background:var(--card); border:1px solid var(--line); border-radius:12px; margin:10px 0; box-shadow:var(--shadow);}
+  .steps li::before{content:counter(s); position:absolute; left:14px; top:14px; width:28px; height:28px; background:var(--brand); color:#06121f; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px;}
+
+  .badge-chosen{display:inline-block; background:var(--good-soft); color:var(--good); border:1px solid rgba(63,185,80,.4); font-size:12px; font-weight:700; padding:3px 12px; border-radius:999px; margin-left:8px;}
+
+  footer{margin-top:42px; padding-top:20px; border-top:1px solid var(--line); color:var(--muted); font-size:13px;}
+  footer a, .src a{color:var(--brand); text-decoration:none;}
+  footer a:hover, .src a:hover{text-decoration:underline;}
+  .src{font-size:13px; color:var(--muted);}
+
+  /* Responsive: collapse sidebar to top */
+  @media (max-width:820px){
+    .layout{flex-direction:column; gap:0; padding:0 16px;}
+    .sidebar{width:auto; height:auto; position:sticky; top:0; padding:14px 0; background:var(--bg); z-index:30; border-bottom:1px solid var(--line);}
+    .brand-mark{display:none;}
+    nav.tabs{flex-direction:row; overflow-x:auto; gap:6px; padding-bottom:4px;}
+    nav.tabs button{white-space:nowrap; border-left:none; border-bottom:3px solid transparent; border-radius:8px;}
+    nav.tabs button.active{border-left:none;}
+    nav.tabs button .dot{display:none;}
+    .content{padding:24px 0 70px;}
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ===== Left Sidebar ===== -->
+  <aside class="sidebar">
+    <div class="brand-mark">
+      <div class="eyebrow">知識系統規劃</div>
+      <div class="name">GitHub → Obsidian<br>→ OpenClaw → Discord</div>
+      <div class="date">討論彙整 · 2026-06-01</div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="active" data-tab="overview"><span class="dot"></span>系統總覽</button>
+      <button data-tab="challenge"><span class="dot"></span>5GB 的挑戰</button>
+      <button data-tab="mcp"><span class="dot"></span>OpenClaw 能連 DB 嗎</button>
+      <button data-tab="free"><span class="dot"></span>免費技術選型</button>
+      <button data-tab="nontech"><span class="dot"></span>非技術夥伴方案</button>
+      <button data-tab="compare"><span class="dot"></span>自架 vs 免自架</button>
+      <button data-tab="plan"><span class="dot"></span>建議架構 · 下一步</button>
+    </nav>
+  </aside>
+
+  <!-- ===== Content ===== -->
+  <main class="content">
+
+  <!-- ============ 系統總覽 ============ -->
+  <section class="panel active" id="overview">
+    <header class="page-head"><h1>系統總覽</h1></header>
+    <div class="flow">
+      GitHub <span class="arrow">→</span> Obsidian <span class="arrow">→</span> 檢索層 <span class="arrow">→</span> OpenClaw <span class="arrow">→</span> Discord
+    </div>
+    <p class="lead">你已經完成了 AI 知識系統最難的一塊：把 GitHub 上的專案知識，自動同步成 AI 可存取的知識庫。</p>
+
+    <div class="card">
+      <pre class="diagram">GitHub（唯一真實來源 Single Source of Truth）
+   │  每個專案的 .md 文件
+   ▼
+Obsidian Git 外掛（稀疏檢出 + 每分鐘自動 pull）
+   ▼
+obsidian_vault/  ←─ 本地知識庫資料夾
+   ▼
+Docker：OpenClaw（掛載 vault，可讀取所有 Markdown）
+   ▼
+Discord Bot（內建串接）
+   ▼
+你在 Discord 提問 → OpenClaw 搜尋 vault → 整理答案 → 回覆</pre>
+    </div>
+
+    <h3>這套系統的本質</h3>
+    <p>它<strong>不是傳統 RAG</strong>。目前沒有向量資料庫、沒有 Embedding、沒有 Chunk 預處理——OpenClaw 直接把 Vault 當知識庫，用「檔案系統搜尋 + LLM 讀檔理解」來回答。</p>
+
+    <h3>四個核心優點</h3>
+    <div class="pill-row">
+      <div class="pill"><b>單一真實來源</b>GitHub 是唯一寫入源，不會有「Vault 更新了、索引沒更新」的同步問題</div>
+      <div class="pill"><b>成本趨近於零</b>不需要 Pinecone / Weaviate / Embedding API</div>
+      <div class="pill"><b>版本可追蹤</b>誰改的、何時改、改了什麼，GitHub 全留底</div>
+      <div class="pill"><b>Obsidian 當介面</b>Backlinks、Graph、Tags、Dataview 全保留</div>
+    </div>
+
+    <div class="note">
+      <strong>關鍵心法：</strong>Obsidian 只是「人類編輯與檢視」的介面，GitHub 才是知識來源。AI 的檢索鏈不該綁在某一台 Obsidian 裝置上。
+    </div>
+  </section>
+
+  <!-- ============ 5GB 的挑戰 ============ -->
+  <section class="panel" id="challenge">
+    <header class="page-head"><h1>5GB Markdown 的挑戰</h1></header>
+    <p class="lead">純檔案搜尋在「文件量小、命名清楚」時很夠用；但你的規模已經是 <strong>5GB 純 Markdown</strong>，這就跨過了「先不要做向量化」的門檻。</p>
+
+    <div class="bad">
+      <strong>核心事實：</strong>5GB Markdown ≈ 數億字元 ≈ 數千萬～上億 Token。<strong>任何 LLM 都不可能一次掃完整個 Vault。</strong>所以一定要有「先檢索、再把候選文件交給模型」的前置階段。
+    </div>
+
+    <h3>真正的瓶頸：不是模型，是「有沒有找到對的檔」</h3>
+    <p>就算用最新的 Claude Sonnet，問題也分三層：</p>
+    <table>
+      <tr><th>層次</th><th>說明</th><th>是不是瓶頸</th></tr>
+      <tr><td>模型理解力</td><td>看到 JWT 就懂登入機制——Sonnet 幾乎不會錯</td><td><span class="tag t-ok">不是</span></td></tr>
+      <tr><td>文件有沒有被找到</td><td>文件寫「JWT」、你問「登入」，關鍵字搜尋可能整份漏掉</td><td><span class="tag t-bad">常常是</span></td></tr>
+      <tr><td>Context Window</td><td>5GB 遠超任何 context，必須先篩選；篩錯 = 高品質地胡說八道</td><td><span class="tag t-bad">是</span></td></tr>
+    </table>
+
+    <h3>兩種查詢，解法完全不同（別混為一談）</h3>
+    <table>
+      <tr><th>查詢類型</th><th>例子</th><th>最佳解</th></tr>
+      <tr><td>語意找單篇</td><td>「登入機制怎麼運作？」（文件沒寫「登入」二字）</td><td><span class="tag t-brand">向量／全文檢索</span></td></tr>
+      <tr><td>跨專案聚合</td><td>「哪些專案用 OAuth？」「近三個月提到 K8s 的會議」</td><td><span class="tag t-brand">結構化 metadata 查詢（SQL）</span></td></tr>
+    </table>
+    <div class="warn">
+      <strong>常見誤區：</strong>用「哪些專案用 OAuth」當作要上向量的理由是<strong>錯的</strong>。聚合型查詢靠向量只會回 top-K 相似片段，<strong>不保證「全部」</strong>；這種「列出所有符合的」本質是 <code>SELECT … WHERE</code>，該交給結構化 metadata（也就是你已規劃的 Supabase 那條線）。
+    </div>
+  </section>
+
+  <!-- ============ OpenClaw 能連 DB 嗎 ============ -->
+  <section class="panel" id="mcp">
+    <header class="page-head"><h1>OpenClaw 能連 Supabase / 資料庫嗎？</h1></header>
+    <p class="lead">能。經網路查證，現在的 OpenClaw <strong>原生支援 MCP</strong>，這把前面的保留全部解開了。</p>
+
+    <div class="ok">
+      <strong>結論：OpenClaw 可以直接連 Postgres / Supabase。</strong> 它支援 MCP（Model Context Protocol，stdio + HTTP/SSE 兩種傳輸），有 <strong>200+ 現成 MCP server</strong>，其中就包含 <strong>Postgres、GitHub、Notion、Slack</strong> 等。只要在 <code>openclaw.json</code> 加一段 <code>mcpServers</code> 設定即可。
+    </div>
+
+    <h3>設定長相（概念示意）</h3>
+    <pre>// openclaw.json
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres",
+               "postgresql://USER:PASS@HOST:5432/db"]
+    }
+  }
+}
+// → 之後任何 agent 都能呼叫這個 server 暴露的查詢工具</pre>
+
+    <h3>那 NemoClaw 是什麼？</h3>
+    <p>NemoClaw 是 <strong>NVIDIA 的開源 stack</strong>，把 OpenClaw 關進安全沙盒裡常駐執行：<strong>全本地推論、資料不離開裝置</strong>、內建 Discord/Telegram/Slack 等通訊頻道支援。換句話說——你現在的底座本身就是免費開源、且隱私友善的。</p>
+
+    <h3>三種接法（依推薦度排序）</h3>
+    <table>
+      <tr><th>方案</th><th>做法</th><th>評價</th></tr>
+      <tr><td><b>A. OpenClaw 直連</b></td><td>掛 Postgres MCP server，OpenClaw 自己查 DB / pgvector</td><td><span class="tag t-ok">現可行</span> 最乾淨</td></tr>
+      <tr><td><b>B. Bot 層檢索</b></td><td>你自己的 <code>main.py</code> 先查向量庫拿 top-K，再把命中片段餵給 OpenClaw</td><td><span class="tag t-brand">最可控</span> 推薦</td></tr>
+      <tr><td><b>C. 自動同步本地庫</b></td><td>Indexer 容器定時 pull GitHub → chunk+embedding → 本地向量庫</td><td><span class="tag t-ok">5GB 適用</span></td></tr>
+    </table>
+    <p>實務上 <strong>B + C 一起做</strong> 最穩：本地自動同步建索引，檢索卡在你能完全掌控的 Bot 層；「OpenClaw 直連」變成加分項而非卡關點。</p>
+  </section>
+
+  <!-- ============ 免費技術選型 ============ -->
+  <section class="panel" id="free">
+    <header class="page-head"><h1>完全免費的技術選型</h1></header>
+    <p class="lead">自架路線下，整條鏈路都能用開源 + 本地達成，唯一真實成本是「一台常開的機器」（你自己的 PC/NAS 即可）。</p>
+
+    <table>
+      <tr><th>環節</th><th>免費方案</th><th>說明</th></tr>
+      <tr><td>Agent 底座</td><td>NemoClaw + OpenClaw</td><td>開源、本地常駐、Discord 內建</td></tr>
+      <tr><td>推論模型</td><td>本地 Nemotron / 你現有的 Claude 訂閱（經 Proxy）</td><td>不另外付 API 費</td></tr>
+      <tr><td>Embedding</td><td>本地模型（如 <code>nomic-embed-text</code>、<code>bge-m3</code>，經 Ollama）</td><td><span class="tag t-ok">零 API 成本</span></td></tr>
+      <tr><td>向量庫</td><td>pgvector / Qdrant / Chroma / LanceDB / sqlite-vec</td><td>全部開源免費</td></tr>
+    </table>
+
+    <h3>向量庫怎麼挑（針對你的情境）</h3>
+    <table>
+      <tr><th>選項</th><th>型態</th><th>適合</th><th>對非技術友善度</th></tr>
+      <tr><td><b>Chroma</b></td><td>嵌入式（像 SQLite，免伺服器）</td><td>快速起步、10萬～數百萬 chunk</td><td><span class="tag t-ok">最高</span></td></tr>
+      <tr><td><b>LanceDB</b></td><td>檔案型（磁碟索引）</td><td>資料量大於記憶體</td><td><span class="tag t-ok">高</span></td></tr>
+      <tr><td><b>sqlite-vec</b></td><td>單一檔案</td><td>極簡、可攜帶</td><td><span class="tag t-ok">高</span></td></tr>
+      <tr><td><b>pgvector</b></td><td>Postgres 擴充</td><td>已經在用 Postgres（你有 Supabase）</td><td><span class="tag t-warn">中</span></td></tr>
+      <tr><td><b>Qdrant</b></td><td>獨立服務</td><td>速度優先、規模大</td><td><span class="tag t-warn">中</span></td></tr>
+    </table>
+
+    <div class="note">
+      <strong>對非技術夥伴的關鍵：</strong>選<strong>嵌入式 / 檔案型</strong>（Chroma、LanceDB、sqlite-vec）——它就是「一個檔案」，<strong>沒有要維運的資料庫伺服器</strong>，一個 <code>docker compose up</code> 全帶起來。
+    </div>
+
+    <div class="warn">
+      <strong>5GB 提醒：</strong>Supabase 免費方案只有 500MB，<strong>裝不下 5GB 的全文向量索引</strong>。所以「完全免費」必須走<strong>本地自架</strong>這條路；雲端免費額度只夠放「小而結構化的 PM metadata」。
+    </div>
+
+    <h3>兩份資料，兩個地方放</h3>
+    <table>
+      <tr><th>資料</th><th>大小</th><th>放哪</th></tr>
+      <tr><td>結構化 PM metadata（任務/里程碑，frontmatter 解析）</td><td>幾 MB</td><td>Supabase（小、給 Web App，OpenClaw 也能 MCP 查）</td></tr>
+      <tr><td>5GB 全文 + 向量索引</td><td>embedding 後可能 10–20GB</td><td><span class="tag t-bad">本地向量庫</span>，別丟雲端免費層</td></tr>
+    </table>
+  </section>
+
+  <!-- ============ 非技術夥伴方案 ============ -->
+  <section class="panel" id="nontech">
+    <header class="page-head"><h1>非技術夥伴怎麼辦？</h1></header>
+    <p class="lead">你卡住的點其實是個誤解：以為「每個夥伴都要在自己電腦架資料庫」。用 Discord 當入口，正解是<strong>集中式單一後端</strong>。</p>
+
+    <div class="ok">
+      <strong>一句話方案：</strong>只有你一個人（技術方）跑「一台」後端，把 NemoClaw + 向量庫 + Bot 全包進<strong>一個 <code>docker compose up</code></strong>。所有非技術夥伴<strong>什麼都不裝</strong>，只在 Discord 打字。資料庫是「一份、集中」，不是「每台一份」。
+    </div>
+
+    <h3>角色切開</h3>
+    <table>
+      <tr><th>角色</th><th>要做什麼</th><th>安裝負擔</th></tr>
+      <tr><td>非技術夥伴</td><td>在 Discord 提問、收答案</td><td><span class="tag t-ok">零</span></td></tr>
+      <tr><td>你（技術方）</td><td>在一台常開機器跑後端、維護索引</td><td><span class="tag t-warn">一次性</span></td></tr>
+    </table>
+
+    <h3>架構示意</h3>
+    <div class="card">
+      <pre class="diagram">       ┌──────── 夥伴 A（Discord App）
+夥伴們 ┼──────── 夥伴 B（Discord App）     ← 什麼都不裝
+       └──────── 夥伴 C（Discord App）
+                      │  打字提問
+                      ▼
+        ╔══════════════════════════════════╗
+        ║   一台常開機器（你的 PC / NAS）    ║
+        ║   docker compose up 全帶起來：      ║
+        ║   • NemoClaw + OpenClaw            ║
+        ║   • 本地向量庫（Chroma/LanceDB）   ║
+        ║   • Indexer（定時 pull GitHub）   ║
+        ║   • Discord Bot                   ║
+        ╚══════════════════════════════════╝
+                      ▲
+                      │ 只同步一份索引
+                   GitHub（5GB md）</pre>
+    </div>
+
+    <div class="note">
+      <strong>唯一的真實成本：</strong>一台「常開」的機器（電費）。不需要雲端付費、不需要每位夥伴安裝任何東西。若你已有一台 24h 開機的 PC 或 NAS，等於<strong>完全免費</strong>。
+    </div>
+  </section>
+
+  <!-- ============ 自架 vs 免自架 ============ -->
+  <section class="panel" id="compare">
+    <header class="page-head"><h1>自架 Server vs 免自架</h1></header>
+    <p class="lead">「免自架」技術上可行（用 Discord HTTP Interactions 走 serverless），但有一個無法迴避的取捨。</p>
+
+    <div class="bad">
+      <strong>取捨三角：免自架 server ＋ 完全免費 ＋ 5GB —— 三者最多選二。</strong>「免費」這一角會在 5GB 卡住：託管向量庫的免費額度多半裝不下，免費 LLM API 也有速率上限。
+    </div>
+
+    <h3>兩條路的整體比較</h3>
+    <table>
+      <tr><th>面向</th><th>自架 Server <span class="badge-chosen">本次選定</span></th><th>免自架（Serverless）</th></tr>
+      <tr><td>常開機器</td><td><span class="tag t-warn">需要一台</span>（PC/NAS）</td><td><span class="tag t-ok">不需要</span></td></tr>
+      <tr><td>費用</td><td><span class="tag t-ok">免費</span>（只花電費）</td><td><span class="tag t-warn">5GB 下每月幾~幾十美元</span></td></tr>
+      <tr><td>可用 Claude 訂閱</td><td><span class="tag t-ok">可</span>（本地 Proxy）</td><td><span class="tag t-bad">不可</span>，須改免費層/付費 API</td></tr>
+      <tr><td>用得到 OpenClaw/NemoClaw</td><td><span class="tag t-ok">是</span></td><td><span class="tag t-bad">否</span>，改純 serverless RAG</td></tr>
+      <tr><td>資料隱私</td><td><span class="tag t-ok">全本地、不外流</span></td><td><span class="tag t-warn">資料進雲端託管</span></td></tr>
+      <tr><td>維運心力</td><td>機器要顧（關機就斷線）</td><td>幾乎免維運</td></tr>
+      <tr><td>非技術夥伴安裝</td><td><span class="tag t-ok">零</span></td><td><span class="tag t-ok">零</span></td></tr>
+    </table>
+
+    <h3>免自架那條路的長相（備查）</h3>
+    <div class="card">
+      <pre class="diagram">GitHub → GitHub Actions（免費 cron）→ embedding → 託管向量庫
+Discord（斜線指令）→ Interactions Endpoint
+   → Cloudflare Worker / Vercel function
+   → 查向量庫 top-K → 呼叫 LLM API → 回答
+（全程沒有自架 server）</pre>
+    </div>
+    <table>
+      <tr><th>環節</th><th>免費選項</th><th>5GB 下的現實</th></tr>
+      <tr><td>Discord 入口</td><td>Cloudflare Workers / Vercel</td><td><span class="tag t-ok">免費</span></td></tr>
+      <tr><td>建索引</td><td>GitHub Actions cron</td><td><span class="tag t-ok">免費</span></td></tr>
+      <tr><td>向量庫</td><td>Cloudflare Vectorize / Pinecone / Upstash 免費層</td><td><span class="tag t-warn">5GB 多半超量 → 付費</span></td></tr>
+      <tr><td>LLM</td><td>Gemini（1500/日）/ Groq（30 RPM）/ Workers AI</td><td><span class="tag t-warn">免費但有速率上限</span></td></tr>
+    </table>
+
+    <div class="note">
+      <strong>為什麼本次選「自架」：</strong>你要求「完全免費」＋「資料 5GB」＋「保留 OpenClaw 與 Claude 訂閱」——這個組合只有自架能同時滿足。代價就是需要一台常開機器。
+    </div>
+    <div class="warn">
+      <strong>未來若想免自架：</strong>先把「純 .md」量小（去掉附件），若能塞進向量庫免費層，就能切換成「免費＋免自架」全 serverless；否則接受每月一點點向量庫費用。
+    </div>
+  </section>
+
+  <!-- ============ 建議架構 · 下一步 ============ -->
+  <section class="panel" id="plan">
+    <header class="page-head"><h1>建議架構 · 下一步 <span class="badge-chosen">自架 Server 路線</span></h1></header>
+    <p class="lead">把上面所有結論收斂成一張圖，加上可以馬上動手的步驟。</p>
+
+    <div class="card">
+      <pre class="diagram">GitHub（5GB md，唯一來源）
+   │
+   ├─（已規劃）GitHub Actions ─解析 frontmatter/WBS─→ Supabase（小·結構化）──→ Web App
+   │
+   └─（新增）Indexer 容器 ─chunk + 本地 embedding─→ 本地向量庫 ┐
+                                                              │
+Discord → 你的 Bot(main.py) ─① 查本地向量庫拿 top-K ─────────┘
+                            └─② 把命中片段交給 OpenClaw → 回答
+
+  ↑ 以上全部包在「一台常開機器」的單一 docker compose 內</pre>
+    </div>
+
+    <h3>立刻可做（低成本、效益最大）</h3>
+    <ol class="steps">
+      <li><strong>重新量「純 .md」大小</strong>，確認 5GB 是文字還是含附件（圖片/PDF/.git）。決定索引規模。</li>
+      <li><strong>把 GitHub Actions → Supabase 的 Indexer 真的接起來</strong>。你的設計文件裡它還是「規劃中、未實作」。這條一通，跨專案聚合查詢就解決一大半，零向量成本。</li>
+      <li><strong>強化檔名與目錄結構</strong>（例：<code>ProjectA/auth/oauth.md</code>）。命名清楚時，OpenClaw 光看路徑就能精準挑檔。</li>
+    </ol>
+
+    <h3>等檔案搜尋真的不夠用，再做</h3>
+    <ol class="steps">
+      <li><strong>起一個本地向量庫</strong>（建議 Chroma / LanceDB，嵌入式免維運），跟 NemoClaw 同一個 docker-compose。</li>
+      <li><strong>Indexer 加上 embedding</strong>：chunk（500–1000 token）+ 本地 embedding 模型，寫進向量庫，附上 <code>project_id / path</code> 等 metadata。</li>
+      <li><strong>做 Hybrid Search</strong>：向量 + 全文(BM25) + metadata 過濾，召回更穩。</li>
+      <li><strong>（加分）OpenClaw 掛 MCP</strong> 直連 Postgres，讓它也能查結構化資料。</li>
+    </ol>
+
+    <h3>不建議</h3>
+    <div class="pill-row">
+      <div class="pill"><b>❌ 每台設備各建索引</b>改成集中式單一後端</div>
+      <div class="pill"><b>❌ 5GB 索引丟雲端免費層</b>裝不下、要付費、資料外流</div>
+      <div class="pill"><b>❌ 太早引入 Qdrant</b>先用嵌入式向量庫，需要時再升級</div>
+      <div class="pill"><b>❌ 讓非技術夥伴自架 DB</b>他們只該用 Discord</div>
+    </div>
+
+    <div class="ok">
+      <strong>總結（自架路線）：</strong>Obsidian 只當編輯器、GitHub 當唯一來源、索引集中維護一份，全部包進一台常開機器的單一 docker compose。先驗證 5GB、先把 Supabase Indexer 接起來解決聚合查詢、向量化延後且用<strong>本地嵌入式向量庫</strong>、後端<strong>集中一台</strong>讓非技術夥伴零安裝。
+    </div>
+  </section>
+
+  <footer>
+    <p class="src"><strong>查證來源：</strong>
+      <a href="https://launchmyopenclaw.com/openclaw-mcp-guide/">OpenClaw MCP 指南</a> ·
+      <a href="https://github.com/openclaw/openclaw/issues/29053">OpenClaw MCP Issue #29053</a> ·
+      <a href="https://www.nvidia.com/en-us/ai/nemoclaw/">NVIDIA NemoClaw</a> ·
+      <a href="https://github.com/NVIDIA/NemoClaw">NemoClaw GitHub</a> ·
+      <a href="https://4xxi.com/articles/vector-database-comparison/">Vector DB 比較 2026</a> ·
+      <a href="https://github.com/discord/cloudflare-sample-app">Discord × Cloudflare Workers</a> ·
+      <a href="https://infrabase.ai/compare/vector-databases">向量庫定價比較</a> ·
+      <a href="https://tokenmix.ai/blog/free-llm-api">免費 LLM API 2026</a>
+    </p>
+    <p>本頁為單一 HTML 檔，離線雙擊即可開啟 · 深色護眼模式 · 內容彙整自與 Claude 的規劃討論 · 2026-06-01</p>
+  </footer>
+
+  </main>
+</div>
+
+<script>
+  const tabs = document.querySelectorAll('#tabs button');
+  const panels = document.querySelectorAll('.panel');
+  tabs.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.tab;
+      tabs.forEach(b=>b.classList.toggle('active', b===btn));
+      panels.forEach(p=>p.classList.toggle('active', p.id===id));
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+  });
+</script>
+</body>
+</html>
