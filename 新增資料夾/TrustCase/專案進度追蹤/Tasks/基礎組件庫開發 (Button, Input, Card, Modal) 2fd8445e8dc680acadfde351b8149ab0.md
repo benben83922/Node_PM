@@ -1,0 +1,5 @@
+# 基礎組件庫開發 (Button, Input, Card, Modal)
+
+Parent task: 設計系統與組件庫 (%E8%A8%AD%E8%A8%88%E7%B3%BB%E7%B5%B1%E8%88%87%E7%B5%84%E4%BB%B6%E5%BA%AB%202fd8445e8dc68046ad52c3acded7b0fd.md)
+Projects: TrustCase (../Projects/TrustCase%202c18445e8dc68185a69fc5c8a8b441d1.md)
+Status: Not started

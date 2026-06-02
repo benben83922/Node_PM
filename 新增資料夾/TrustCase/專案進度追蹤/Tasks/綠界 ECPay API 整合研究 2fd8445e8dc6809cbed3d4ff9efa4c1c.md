@@ -1,0 +1,5 @@
+# 綠界 ECPay API 整合研究
+
+Parent task: 金流整合模組 (%E9%87%91%E6%B5%81%E6%95%B4%E5%90%88%E6%A8%A1%E7%B5%84%202fd8445e8dc680b59f81cdb176d81661.md)
+Projects: TrustCase (../Projects/TrustCase%202c18445e8dc68185a69fc5c8a8b441d1.md)
+Status: Not started

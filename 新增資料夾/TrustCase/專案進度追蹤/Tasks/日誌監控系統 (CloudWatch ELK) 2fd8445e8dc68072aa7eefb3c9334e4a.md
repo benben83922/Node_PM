@@ -1,0 +1,5 @@
+# 日誌監控系統 (CloudWatch/ELK)
+
+Parent task: 監控與維護 (%E7%9B%A3%E6%8E%A7%E8%88%87%E7%B6%AD%E8%AD%B7%202fd8445e8dc680bda23fe0139bce59d2.md)
+Projects: TrustCase (../Projects/TrustCase%202c18445e8dc68185a69fc5c8a8b441d1.md)
+Status: Not started
