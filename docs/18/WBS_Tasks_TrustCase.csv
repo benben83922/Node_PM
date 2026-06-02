@@ -1,0 +1,129 @@
+﻿Name,UID,Task ID,Parent,Milestone,Action Type,Assigned,Eng hours,Status,Timeline,Depends on,Project
+1.1.1 專案章程制定,TrustCase::1.1.1,1.1.1,1.1,1.1 專案啟動與規劃,專案管理與規劃,PM,4,未開始,,,TrustCase
+1.1.2 WBS 結構設計,TrustCase::1.1.2,1.1.2,1.1,1.1 專案啟動與規劃,專案管理與規劃,PM,4,未開始,,1.1.1,TrustCase
+1.1.3 專案時程規劃,TrustCase::1.1.3,1.1.3,1.1,1.1 專案啟動與規劃,專案管理與規劃,PM,4,未開始,,1.1.2,TrustCase
+1.1.4 風險識別與評估,TrustCase::1.1.4,1.1.4,1.1,1.1 專案啟動與規劃,專案管理與規劃,PM/TL,4,未開始,,1.1.3,TrustCase
+1.1.5 團隊組建與任務分配,TrustCase::1.1.5,1.1.5,1.1,1.1 專案啟動與規劃,專案管理與規劃,PM,4,未開始,,1.1.4,TrustCase
+1.2.1 PRD 文檔審核與確認,TrustCase::1.2.1,1.2.1,1.2,1.2 需求分析與文檔,專案管理與規劃,PO,4,未開始,,1.1.1,TrustCase
+1.2.2 使用者故事定義 (MVP 範圍),TrustCase::1.2.2,1.2.2,1.2,1.2 需求分析與文檔,專案管理與規劃,PO,4,未開始,,1.2.1,TrustCase
+1.2.3 驗收標準制定,TrustCase::1.2.3,1.2.3,1.2,1.2 需求分析與文檔,專案管理與規劃,PM/PO,4,未開始,,1.2.2,TrustCase
+1.2.4 需求變更控制流程,TrustCase::1.2.4,1.2.4,1.2,1.2 需求分析與文檔,專案管理與規劃,PM,2,未開始,,1.2.3,TrustCase
+1.3.1 週報告制度建立,TrustCase::1.3.1,1.3.1,1.3,1.3 專案監控與報告,專案管理與規劃,PM,2,未開始,,,TrustCase
+1.3.2 進度追蹤機制設立,TrustCase::1.3.2,1.3.2,1.3,1.3 專案監控與報告,專案管理與規劃,PM,2,未開始,,1.3.1,TrustCase
+1.3.3 里程碑審查機制,TrustCase::1.3.3,1.3.3,1.3,1.3 專案監控與報告,專案管理與規劃,PM,2,未開始,,週期性,TrustCase
+2.1.1 技術選型確認 (NestJS/Next.js/PostgreSQL),TrustCase::2.1.1,2.1.1,2.1,2.1 技術架構設計,系統架構與設計,TL,4,未開始,,1.2.1,TrustCase
+2.1.2 系統架構設計 (Microservices),TrustCase::2.1.2,2.1.2,2.1,2.1 技術架構設計,系統架構與設計,TL,8,未開始,,2.1.1,TrustCase
+2.1.3 模組化設計規劃,TrustCase::2.1.3,2.1.3,2.1,2.1 技術架構設計,系統架構與設計,TL,4,未開始,,2.1.2,TrustCase
+2.1.4 部署架構設計 (Docker/K8s),TrustCase::2.1.4,2.1.4,2.1,2.1 技術架構設計,系統架構與設計,TL,4,未開始,,2.1.3,TrustCase
+2.2.1 ER 圖設計,TrustCase::2.2.1,2.2.1,2.2,2.2 資料庫設計,系統架構與設計,BE,8,未開始,,2.1.2,TrustCase
+"2.2.2 資料表結構設計 (users, projects, milestones, payments, deliverables, disputes)",TrustCase::2.2.2,2.2.2,2.2,2.2 資料庫設計,系統架構與設計,BE,8,未開始,,2.2.1,TrustCase
+2.2.3 索引策略規劃,TrustCase::2.2.3,2.2.3,2.2,2.2 資料庫設計,系統架構與設計,BE,2,未開始,,2.2.2,TrustCase
+2.2.4 資料遷移策略 (Prisma/TypeORM),TrustCase::2.2.4,2.2.4,2.2,2.2 資料庫設計,系統架構與設計,BE,2,未開始,,2.2.3,TrustCase
+2.3.1 RESTful API 規範制定,TrustCase::2.3.1,2.3.1,2.3,2.3 API 設計規範,系統架構與設計,TL,4,未開始,,2.1.2,TrustCase
+2.3.2 OpenAPI/Swagger 文檔規範,TrustCase::2.3.2,2.3.2,2.3,2.3 API 設計規範,系統架構與設計,TL,2,未開始,,2.3.1,TrustCase
+2.3.3 錯誤處理標準定義,TrustCase::2.3.3,2.3.3,2.3,2.3 API 設計規範,系統架構與設計,TL,2,未開始,,2.3.2,TrustCase
+3.1.1 NestJS 專案初始化,TrustCase::3.1.1,3.1.1,3.1,3.1 基礎架構建置,後端開發,BE,2,未開始,W1,2.1.3,TrustCase
+3.1.2 框架設置與配置 (模組、中間件),TrustCase::3.1.2,3.1.2,3.1,3.1 基礎架構建置,後端開發,BE,4,未開始,W1,3.1.1,TrustCase
+3.1.3 PostgreSQL 資料庫連接,TrustCase::3.1.3,3.1.3,3.1,3.1 基礎架構建置,後端開發,BE,4,未開始,W1,"2.2.2, 3.1.2",TrustCase
+3.1.4 Redis 連接設置,TrustCase::3.1.4,3.1.4,3.1,3.1 基礎架構建置,後端開發,BE,2,未開始,W1,3.1.2,TrustCase
+3.1.5 配置管理系統 (環境變數),TrustCase::3.1.5,3.1.5,3.1,3.1 基礎架構建置,後端開發,BE,2,未開始,W1,3.1.2,TrustCase
+3.1.6 日誌系統設置,TrustCase::3.1.6,3.1.6,3.1,3.1 基礎架構建置,後端開發,BE,2,未開始,W1,3.1.5,TrustCase
+3.1.7 Swagger API 文檔設置,TrustCase::3.1.7,3.1.7,3.1,3.1 基礎架構建置,後端開發,BE,2,未開始,W1,3.1.2,TrustCase
+3.2.1 User 資料模型實作,TrustCase::3.2.1,3.2.1,3.2,3.2 認證授權模組 (Auth Service),後端開發,BE,4,未開始,W1,3.1.3,TrustCase
+3.2.2 Email 註冊/登入 API,TrustCase::3.2.2,3.2.2,3.2,3.2 認證授權模組 (Auth Service),後端開發,BE,6,未開始,W1-2,3.2.1,TrustCase
+3.2.3 JWT Token 機制,TrustCase::3.2.3,3.2.3,3.2,3.2 認證授權模組 (Auth Service),後端開發,BE,4,未開始,W2,3.2.2,TrustCase
+3.2.4 OAuth 整合 (Google),TrustCase::3.2.4,3.2.4,3.2,3.2 認證授權模組 (Auth Service),後端開發,BE,4,未開始,W2,3.2.3,TrustCase
+3.2.5 角色權限控制 (client/freelancer/both),TrustCase::3.2.5,3.2.5,3.2,3.2 認證授權模組 (Auth Service),後端開發,BE,4,未開始,W2,3.2.3,TrustCase
+3.2.6 Email 驗證流程,TrustCase::3.2.6,3.2.6,3.2,3.2 認證授權模組 (Auth Service),後端開發,BE,4,未開始,W2,3.2.2,TrustCase
+3.2.7 密碼重設流程,TrustCase::3.2.7,3.2.7,3.2,3.2 認證授權模組 (Auth Service),後端開發,BE,3,未開始,W2,3.2.2,TrustCase
+3.3.1 Project 資料模型實作,TrustCase::3.3.1,3.3.1,3.3,3.3 專案管理模組 (Core Service),後端開發,BE,4,未開始,W2,3.1.3,TrustCase
+3.3.2 專案 CRUD API,TrustCase::3.3.2,3.3.2,3.3,3.3 專案管理模組 (Core Service),後端開發,BE,6,未開始,W2-3,3.3.1,TrustCase
+3.3.3 專案狀態機實作 (draft→open→in_progress→completed),TrustCase::3.3.3,3.3.3,3.3,3.3 專案管理模組 (Core Service),後端開發,BE,4,未開始,W3,3.3.2,TrustCase
+3.3.4 Proposal 資料模型與 API (接案者投標),TrustCase::3.3.4,3.3.4,3.3,3.3 專案管理模組 (Core Service),後端開發,BE,6,未開始,W3,3.3.1,TrustCase
+3.3.5 專案搜尋與過濾 API,TrustCase::3.3.5,3.3.5,3.3,3.3 專案管理模組 (Core Service),後端開發,BE,4,未開始,W3-4,3.3.2,TrustCase
+3.3.6 接案者選擇與合作確認流程,TrustCase::3.3.6,3.3.6,3.3,3.3 專案管理模組 (Core Service),後端開發,BE,4,未開始,W4,3.3.4,TrustCase
+3.4.1 Milestone 資料模型實作,TrustCase::3.4.1,3.4.1,3.4,3.4 里程碑託管模組,後端開發,BE,4,未開始,W3,3.3.1,TrustCase
+3.4.2 里程碑 CRUD API,TrustCase::3.4.2,3.4.2,3.4,3.4 里程碑託管模組,後端開發,BE,6,未開始,W3,3.4.1,TrustCase
+3.4.3 里程碑狀態機 (pending→funded→in_progress→submitted→approved→released),TrustCase::3.4.3,3.4.3,3.4,3.4 里程碑託管模組,後端開發,BE,6,未開始,W3-4,3.4.2,TrustCase
+3.4.4 驗收標準強制機制,TrustCase::3.4.4,3.4.4,3.4,3.4 里程碑託管模組,後端開發,BE,4,未開始,W4,3.4.2,TrustCase
+3.4.5 超時自動處理邏輯 (7天未驗收→自動放款),TrustCase::3.4.5,3.4.5,3.4,3.4 里程碑託管模組,後端開發,BE,4,未開始,W4,3.4.3,TrustCase
+3.5.1 Payment 資料模型實作,TrustCase::3.5.1,3.5.1,3.5,3.5 金流整合模組 (Payment Service),後端開發,BE,4,未開始,W3,3.4.1,TrustCase
+3.5.2 綠界 ECPay API 整合研究,TrustCase::3.5.2,3.5.2,3.5,3.5 金流整合模組 (Payment Service),後端開發,BE,8,未開始,W3-4,,TrustCase
+3.5.3 託管收款流程實作,TrustCase::3.5.3,3.5.3,3.5,3.5 金流整合模組 (Payment Service),後端開發,BE,8,未開始,W4,"3.5.1, 3.5.2",TrustCase
+3.5.4 放款流程實作 (手動代理託管),TrustCase::3.5.4,3.5.4,3.5,3.5 金流整合模組 (Payment Service),後端開發,BE,6,未開始,W4-5,3.5.3,TrustCase
+3.5.5 退款流程實作,TrustCase::3.5.5,3.5.5,3.5,3.5 金流整合模組 (Payment Service),後端開發,BE,4,未開始,W5,3.5.4,TrustCase
+3.5.6 金流 Webhook 處理,TrustCase::3.5.6,3.5.6,3.5,3.5 金流整合模組 (Payment Service),後端開發,BE,4,未開始,W5,3.5.3,TrustCase
+3.5.7 金流對帳機制,TrustCase::3.5.7,3.5.7,3.5,3.5 金流整合模組 (Payment Service),後端開發,BE,4,未開始,W5,3.5.6,TrustCase
+3.6.1 Deliverable 資料模型實作,TrustCase::3.6.1,3.6.1,3.6,3.6 交付物管理模組,後端開發,BE,4,未開始,W5,3.4.1,TrustCase
+3.6.2 檔案上傳 API (S3 整合),TrustCase::3.6.2,3.6.2,3.6,3.6 交付物管理模組,後端開發,BE,6,未開始,W5,3.6.1,TrustCase
+3.6.3 SHA-256 雜湊值計算與存儲,TrustCase::3.6.3,3.6.3,3.6,3.6 交付物管理模組,後端開發,BE,4,未開始,W5-6,3.6.2,TrustCase
+3.6.4 交付物版本控制,TrustCase::3.6.4,3.6.4,3.6,3.6 交付物管理模組,後端開發,BE,4,未開始,W6,3.6.2,TrustCase
+3.6.5 驗收/退回流程 API,TrustCase::3.6.5,3.6.5,3.6,3.6 交付物管理模組,後端開發,BE,4,未開始,W6,3.6.4,TrustCase
+3.7.1 KPI 計算邏輯設計,TrustCase::3.7.1,3.7.1,3.7,3.7 KPI 與評價模組,後端開發,BE,4,未開始,W6,3.4.3,TrustCase
+3.7.2 準時率 (On-Time Rate) 計算,TrustCase::3.7.2,3.7.2,3.7,3.7 KPI 與評價模組,後端開發,BE,4,未開始,W6-7,3.7.1,TrustCase
+3.7.3 一次驗收率 (First-Pass Acceptance) 計算,TrustCase::3.7.3,3.7.3,3.7,3.7 KPI 與評價模組,後端開發,BE,4,未開始,W7,3.7.1,TrustCase
+3.7.4 KPI 儀表板 API,TrustCase::3.7.4,3.7.4,3.7,3.7 KPI 與評價模組,後端開發,BE,6,未開始,W7-8,"3.7.2, 3.7.3",TrustCase
+3.7.5 價格區間建議 API (市場數據),TrustCase::3.7.5,3.7.5,3.7,3.7 KPI 與評價模組,後端開發,BE,6,未開始,W8,3.3.2,TrustCase
+3.8.1 Dispute 資料模型實作,TrustCase::3.8.1,3.8.1,3.8,3.8 爭議處理模組,後端開發,BE,4,未開始,W9,3.4.1,TrustCase
+3.8.2 爭議發起 API,TrustCase::3.8.2,3.8.2,3.8,3.8 爭議處理模組,後端開發,BE,4,未開始,W9,3.8.1,TrustCase
+3.8.3 自動裁決規則引擎,TrustCase::3.8.3,3.8.3,3.8,3.8 爭議處理模組,後端開發,BE,8,未開始,W9-10,3.8.2,TrustCase
+3.8.4 爭議升級流程,TrustCase::3.8.4,3.8.4,3.8,3.8 爭議處理模組,後端開發,BE,4,未開始,W10,3.8.3,TrustCase
+3.8.5 證據鏈管理 API,TrustCase::3.8.5,3.8.5,3.8,3.8 爭議處理模組,後端開發,BE,4,未開始,W10,"3.8.1, 3.6.3",TrustCase
+3.9.1 AI 需求導引 v1 - 需求模糊語言檢測,TrustCase::3.9.1,3.9.1,3.9,3.9 AI 輔助模組,後端開發,BE,6,未開始,W2-3,3.3.2,TrustCase
+3.9.2 AI 需求導引 v1 - 結構化需求產出,TrustCase::3.9.2,3.9.2,3.9,3.9 AI 輔助模組,後端開發,BE,6,未開始,W3,3.9.1,TrustCase
+3.9.3 AI 價格談判輔助,TrustCase::3.9.3,3.9.3,3.9,3.9 AI 輔助模組,後端開發,BE,6,未開始,W9-10,3.7.5,TrustCase
+4.1.1 Next.js 14 專案初始化,TrustCase::4.1.1,4.1.1,4.1,4.1 設計系統與組件庫,前端開發,FE,2,未開始,W1,2.1.1,TrustCase
+4.1.2 UI 設計系統定義 (Tailwind/Shadcn),TrustCase::4.1.2,4.1.2,4.1,4.1 設計系統與組件庫,前端開發,FE,4,未開始,W1,4.1.1,TrustCase
+"4.1.3 基礎組件庫開發 (Button, Input, Card, Modal)",TrustCase::4.1.3,4.1.3,4.1,4.1 設計系統與組件庫,前端開發,FE,8,未開始,W1-2,4.1.2,TrustCase
+4.1.4 響應式設計方案,TrustCase::4.1.4,4.1.4,4.1,4.1 設計系統與組件庫,前端開發,FE,4,未開始,W2,4.1.3,TrustCase
+4.2.1 註冊頁面,TrustCase::4.2.1,4.2.1,4.2,4.2 認證與用戶介面,前端開發,FE,4,未開始,W2,"4.1.3, 3.2.2",TrustCase
+4.2.2 登入頁面 (Email + OAuth),TrustCase::4.2.2,4.2.2,4.2,4.2 認證與用戶介面,前端開發,FE,4,未開始,W2,"4.2.1, 3.2.4",TrustCase
+4.2.3 用戶個人檔案頁面,TrustCase::4.2.3,4.2.3,4.2,4.2 認證與用戶介面,前端開發,FE,6,未開始,W2-3,4.2.2,TrustCase
+4.2.4 用戶設定頁面,TrustCase::4.2.4,4.2.4,4.2,4.2 認證與用戶介面,前端開發,FE,4,未開始,W3,4.2.3,TrustCase
+4.2.5 NextAuth 整合,TrustCase::4.2.5,4.2.5,4.2,4.2 認證與用戶介面,前端開發,FE,4,未開始,W2,3.2.3,TrustCase
+4.3.1 專案發布表單 (含 AI 需求導引),TrustCase::4.3.1,4.3.1,4.3,4.3 專案發布與媒合介面,前端開發,FE,8,未開始,W3,"3.3.2, 3.9.2",TrustCase
+4.3.2 專案列表頁面 (接案者視角),TrustCase::4.3.2,4.3.2,4.3,4.3 專案發布與媒合介面,前端開發,FE,6,未開始,W3-4,3.3.5,TrustCase
+4.3.3 專案詳情頁面,TrustCase::4.3.3,4.3.3,4.3,4.3 專案發布與媒合介面,前端開發,FE,6,未開始,W4,4.3.2,TrustCase
+4.3.4 投標提案介面,TrustCase::4.3.4,4.3.4,4.3,4.3 專案發布與媒合介面,前端開發,FE,6,未開始,W4,3.3.4,TrustCase
+4.3.5 候選人選擇介面 (案主視角),TrustCase::4.3.5,4.3.5,4.3,4.3 專案發布與媒合介面,前端開發,FE,4,未開始,W4-5,3.3.6,TrustCase
+4.4.1 里程碑設定介面,TrustCase::4.4.1,4.4.1,4.4,4.4 里程碑與交付介面,前端開發,FE,6,未開始,W5,3.4.2,TrustCase
+4.4.2 託管付款流程介面,TrustCase::4.4.2,4.4.2,4.4,4.4 里程碑與交付介面,前端開發,FE,6,未開始,W5-6,3.5.3,TrustCase
+4.4.3 交付物上傳介面,TrustCase::4.4.3,4.4.3,4.4,4.4 里程碑與交付介面,前端開發,FE,6,未開始,W6,3.6.2,TrustCase
+4.4.4 驗收確認介面,TrustCase::4.4.4,4.4.4,4.4,4.4 里程碑與交付介面,前端開發,FE,4,未開始,W6-7,3.6.5,TrustCase
+4.4.5 專案進度儀表板,TrustCase::4.4.5,4.4.5,4.4,4.4 里程碑與交付介面,前端開發,FE,6,未開始,W7,3.4.3,TrustCase
+4.5.1 接案者 KPI 儀表板,TrustCase::4.5.1,4.5.1,4.5,4.5 儀表板與數據視覺化,前端開發,FE,6,未開始,W7-8,3.7.4,TrustCase
+4.5.2 案主專案管理儀表板,TrustCase::4.5.2,4.5.2,4.5,4.5 儀表板與數據視覺化,前端開發,FE,6,未開始,W8,4.4.5,TrustCase
+4.5.3 價格區間視覺化 (箱形圖),TrustCase::4.5.3,4.5.3,4.5,4.5 儀表板與數據視覺化,前端開發,FE,4,未開始,W8-9,3.7.5,TrustCase
+4.6.1 爭議發起介面,TrustCase::4.6.1,4.6.1,4.6,4.6 爭議處理介面,前端開發,FE,4,未開始,W10,3.8.2,TrustCase
+4.6.2 爭議詳情與證據展示,TrustCase::4.6.2,4.6.2,4.6,4.6 爭議處理介面,前端開發,FE,4,未開始,W10-11,3.8.5,TrustCase
+4.6.3 爭議處理狀態追蹤,TrustCase::4.6.3,4.6.3,4.6,4.6 爭議處理介面,前端開發,FE,4,未開始,W11,3.8.4,TrustCase
+5.1.1 Jest 測試框架設置,TrustCase::5.1.1,5.1.1,5.1,5.1 單元測試,測試與品質保證,QA/BE,2,未開始,W2,3.1.2,TrustCase
+5.1.2 Auth 模組單元測試,TrustCase::5.1.2,5.1.2,5.1,5.1 單元測試,測試與品質保證,QA,4,未開始,W3,3.2.7,TrustCase
+5.1.3 Core 模組單元測試,TrustCase::5.1.3,5.1.3,5.1,5.1 單元測試,測試與品質保證,QA,4,未開始,W5,3.3.6,TrustCase
+5.1.4 Payment 模組單元測試,TrustCase::5.1.4,5.1.4,5.1,5.1 單元測試,測試與品質保證,QA,4,未開始,W6,3.5.7,TrustCase
+5.1.5 前端組件測試 (React Testing Library),TrustCase::5.1.5,5.1.5,5.1,5.1 單元測試,測試與品質保證,QA,4,未開始,W8,4.4.5,TrustCase
+5.2.1 API 整合測試,TrustCase::5.2.1,5.2.1,5.2,5.2 整合測試,測試與品質保證,QA,6,未開始,W8-9,5.1.4,TrustCase
+5.2.2 金流整合測試 (ECPay 測試環境),TrustCase::5.2.2,5.2.2,5.2,5.2 整合測試,測試與品質保證,QA,4,未開始,W9,5.2.1,TrustCase
+5.2.3 前後端整合測試,TrustCase::5.2.3,5.2.3,5.2,5.2 整合測試,測試與品質保證,QA,4,未開始,W10,5.2.2,TrustCase
+5.3.1 Playwright E2E 框架設置,TrustCase::5.3.1,5.3.1,5.3,5.3 端到端測試,測試與品質保證,QA,2,未開始,W10,5.2.3,TrustCase
+5.3.2 核心用戶流程 E2E 測試,TrustCase::5.3.2,5.3.2,5.3,5.3 端到端測試,測試與品質保證,QA,6,未開始,W10-11,5.3.1,TrustCase
+5.3.3 跨瀏覽器相容性測試,TrustCase::5.3.3,5.3.3,5.3,5.3 端到端測試,測試與品質保證,QA,2,未開始,W11,5.3.2,TrustCase
+5.4.1 效能基準測試,TrustCase::5.4.1,5.4.1,5.4,5.4 效能與安全測試,測試與品質保證,QA,2,未開始,W11,5.3.2,TrustCase
+5.4.2 安全性掃描 (OWASP),TrustCase::5.4.2,5.4.2,5.4,5.4 效能與安全測試,測試與品質保證,QA,4,未開始,W11-12,5.4.1,TrustCase
+6.1.1 Docker 容器化配置,TrustCase::6.1.1,6.1.1,6.1,6.1 部署環境準備,部署與上線,DevOps/BE,4,未開始,W10,3.8.5,TrustCase
+6.1.2 CI/CD Pipeline 設計 (GitHub Actions),TrustCase::6.1.2,6.1.2,6.1,6.1 部署環境準備,部署與上線,DevOps,4,未開始,W10-11,6.1.1,TrustCase
+6.1.3 環境配置管理 (dev/staging/prod),TrustCase::6.1.3,6.1.3,6.1,6.1 部署環境準備,部署與上線,DevOps,2,未開始,W11,6.1.2,TrustCase
+6.2.1 雲端環境設置 (AWS/GCP),TrustCase::6.2.1,6.2.1,6.2,6.2 生產部署,部署與上線,DevOps,4,未開始,W11,"6.1.3, 5.3.3",TrustCase
+6.2.2 域名與 SSL 配置,TrustCase::6.2.2,6.2.2,6.2,6.2 生產部署,部署與上線,DevOps,2,未開始,W11-12,6.2.1,TrustCase
+6.2.3 上線驗證測試,TrustCase::6.2.3,6.2.3,6.2,6.2 生產部署,部署與上線,QA,2,未開始,W12,6.2.2,TrustCase
+6.3.1 日誌監控系統 (CloudWatch/ELK),TrustCase::6.3.1,6.3.1,6.3,6.3 監控與維護,部署與上線,DevOps,2,未開始,W12,6.2.3,TrustCase
+6.3.2 效能監控告警設置,TrustCase::6.3.2,6.3.2,6.3,6.3 監控與維護,部署與上線,DevOps,2,未開始,W12,6.3.1,TrustCase
+6.3.3 資料庫備份策略,TrustCase::6.3.3,6.3.3,6.3,6.3 監控與維護,部署與上線,DevOps,2,未開始,W12,6.3.2,TrustCase
+7.1.1 架構設計文檔更新,TrustCase::7.1.1,7.1.1,7.1,7.1 技術文檔,文檔與培訓,TL,4,未開始,W11-12,2.1.2,TrustCase
+7.1.2 API 規格文檔 (Swagger),TrustCase::7.1.2,7.1.2,7.1,7.1 技術文檔,文檔與培訓,BE,4,未開始,W11-12,3.1.7,TrustCase
+7.1.3 資料庫設計文檔,TrustCase::7.1.3,7.1.3,7.1,7.1 技術文檔,文檔與培訓,BE,2,未開始,W12,2.2.2,TrustCase
+7.1.4 部署指南,TrustCase::7.1.4,7.1.4,7.1,7.1 技術文檔,文檔與培訓,DevOps,2,未開始,W12,6.2.3,TrustCase
+7.2.1 案主操作手冊,TrustCase::7.2.1,7.2.1,7.2,7.2 使用者手冊,文檔與培訓,PM/PO,4,未開始,W12,4.6.3,TrustCase
+7.2.2 接案者操作手冊,TrustCase::7.2.2,7.2.2,7.2,7.2 使用者手冊,文檔與培訓,PM/PO,4,未開始,W12,4.6.3,TrustCase
+7.2.3 FAQ 常見問題,TrustCase::7.2.3,7.2.3,7.2,7.2 使用者手冊,文檔與培訓,PM,2,未開始,W12,7.2.2,TrustCase
+7.3.1 系統維護手冊,TrustCase::7.3.1,7.3.1,7.3,7.3 維護手冊,文檔與培訓,DevOps,2,未開始,W12,6.3.3,TrustCase

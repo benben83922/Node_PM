@@ -1,0 +1,15 @@
+{
+  "name": "trustcase-notion-sync",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "WBS → Notion 同步工具（push 觸發 GitHub Action）",
+  "scripts": {
+    "wbs:csv": "node scripts/wbs_to_tasks.mjs",
+    "wbs:sync": "node scripts/sync_wbs_to_notion.mjs",
+    "wbs:sync:dry": "node scripts/sync_wbs_to_notion.mjs --dry-run"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.2.15"
+  }
+}

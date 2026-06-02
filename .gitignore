@@ -147,6 +147,10 @@ activemq-data/
 # SageMath parsed files
 *.sage.py
 
+# Node (Notion sync 工具)
+node_modules/
+npm-debug.log*
+
 # Environments
 .env
 .envrc

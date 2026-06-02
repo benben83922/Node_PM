@@ -1,0 +1,46 @@
+name: Sync WBS to Notion
+
+# push 任何 WBS 文件 → 只同步「這次變動到的」WBS 到 Notion 共用 Tasks DB
+on:
+  push:
+    paths:
+      - 'docs/**/*WBS*.md'
+      - 'scripts/parse_wbs.mjs'
+      - 'scripts/sync_wbs_to_notion.mjs'
+  workflow_dispatch:        # 手動觸發＝全量同步所有 WBS
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # 需要歷史才能 diff 出本次變動檔
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install deps
+        run: npm install --no-audit --no-fund
+
+      - name: 找出本次要同步的 WBS 檔
+        id: pick
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            files=$(git ls-files 'docs/**/*WBS*.md' | tr '\n' ' ')
+          elif [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            files=$(git ls-files 'docs/**/*WBS*.md' | tr '\n' ' ')
+          else
+            files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} \
+                    | grep -E 'WBS.*\.md$' | tr '\n' ' ' || true)
+          fi
+          echo "files=$files" >> "$GITHUB_OUTPUT"
+          echo "將同步：$files"
+
+      - name: Sync WBS → Notion
+        if: steps.pick.outputs.files != ''
+        run: node scripts/sync_wbs_to_notion.mjs ${{ steps.pick.outputs.files }}
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_WBS_DB_ID: ${{ secrets.NOTION_WBS_DB_ID }}
