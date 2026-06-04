@@ -1,5 +1,0 @@
-# 里程碑狀態機 (pending→funded→in_progress→submitted→approved→released)
-
-Parent task: 里程碑託管模組 (%E9%87%8C%E7%A8%8B%E7%A2%91%E8%A8%97%E7%AE%A1%E6%A8%A1%E7%B5%84%202fd8445e8dc6809ea950c677a97a7971.md)
-Projects: TrustCase (../Projects/TrustCase%202c18445e8dc68185a69fc5c8a8b441d1.md)
-Status: Not started

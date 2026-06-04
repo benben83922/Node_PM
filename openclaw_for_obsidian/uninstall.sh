@@ -17,7 +17,7 @@ if [[ -f "$ENV_FILE" ]]; then
   set +a
 fi
 
-OPENCLAW_IMAGE="${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:2026.5.20}"
+OPENCLAW_IMAGE="${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest}"
 OPENCLAW_CONFIG_DIR="${OPENCLAW_CONFIG_DIR:-${HOME}/.openclaw}"
 
 echo "  Config Dir : ${OPENCLAW_CONFIG_DIR}"

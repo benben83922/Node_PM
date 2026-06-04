@@ -35,8 +35,7 @@ Web App 是本系統對外的**團隊共用進度儀表板**，讓 PM、工程�
 | 分類 | 選用技術 | 選擇理由 |
 | :--- | :--- | :--- |
 | **前端框架** | React | 生態成熟，Supabase SDK 完整支援 |
-| **資料來源** | Supabase（PostgreSQL + RLS） | 即時訂閱、RBAC、Auth 一體整合 |
-| **即時更新** | Supabase Realtime | GitHub Actions 寫入後前端自動刷新 |
+| **資料來源** | Supabase（PostgreSQL + RLS） | RBAC、Auth 一體整合 |
 | **認證** | Supabase Auth（Google OAuth + Email） | 方便外部客戶用 Google 帳號登入 |
 | **部署** | Vercel | 與 GitHub 整合，push 自動部署 |
 | **圖表** | Recharts | React 生態，支援 S-Curve / CFD / 燃盡圖 |
@@ -110,25 +109,7 @@ auth.users UUID 對應 profiles 表
 
 ---
 
-## 五、即時更新設計
-
-使用 Supabase Realtime 訂閱，GitHub Actions 寫入後前端自動刷新：
-
-```javascript
-const subscription = supabase
-  .channel('tasks-changes')
-  .on('postgres_changes', {
-    event: '*',
-    schema: 'public',
-    table: 'tasks_sync',
-    filter: `project_id=eq.${projectId}`
-  }, () => refreshDashboard())
-  .subscribe();
-```
-
----
-
-## 六、進度計算邏輯
+## 五、進度計算邏輯
 
 Web App 從 `tasks_sync` 動態計算，不依賴靜態欄位：
 

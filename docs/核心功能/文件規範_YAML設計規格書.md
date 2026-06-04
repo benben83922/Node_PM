@@ -25,7 +25,7 @@ Claude Code 產出的 `.md` 文件內容豐富，但對「機器」而言，它�
 
 **根本原因**：文件沒有統一的機器可讀 metadata，導致：
 - Dataview 無法做跨文件查詢
-- NemoClaw 無法快速定位相關文件
+- OpenClaw 無法快速定位相關文件
 - 任何自動化流程都無從下手
 
 ### 1.2 解決方案
@@ -38,7 +38,7 @@ Claude Code 產出的 `.md` 文件內容豐富，但對「機器」而言，它�
 機器可查詢的結構化 metadata（YAML Frontmatter）
        ↓
 Dataview 用 frontmatter 渲染表格與清單
-NemoClaw 用 frontmatter 快速定位相關文件
+OpenClaw 用 frontmatter 快速定位相關文件
 ```
 
 ---
@@ -161,7 +161,7 @@ tags: []
 | :--- | :--- |
 | **類型** | Array of String |
 | **格式** | `[tag1, tag2]` |
-| **用途** | 彈性標籤，供 Obsidian Graph View 分群、NemoClaw 細粒度過濾 |
+| **用途** | 彈性標籤，供 Obsidian Graph View 分群、OpenClaw 細粒度過濾 |
 | **建議值** | `auth` / `payment` / `backend` / `frontend` / `ai` / `legal` / `risk` |
 
 ---

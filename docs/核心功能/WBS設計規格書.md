@@ -310,13 +310,13 @@ kanban-plugin: basic
 
 ---
 
-## 六、NemoClaw 查詢設計
+## 六、OpenClaw 查詢設計
 
 ### 6.1 WBS 相關標準問題集
 
-新增以下測試問題，補充至 NemoClaw 驗收清單：
+新增以下測試問題，補充至 OpenClaw 驗收清單：
 
-| 問題 | NemoClaw 查找目標 | 預期回答形式 |
+| 問題 | OpenClaw 查找目標 | 預期回答形式 |
 | :--- | :--- | :--- |
 | 「X 專案的 WBS 還剩幾個任務？」 | WBS.md 的 `- [ ]` 數量 | 數字 + 列出未完成任務 |
 | 「金流模組哪些任務已完成？」 | WBS.md M{金流模組} 的 `- [x]` | 條列已完成任務 |
@@ -324,9 +324,9 @@ kanban-plugin: basic
 | 「這週有哪些任務的 deadline 到期？」 | WBS.md 中 `#YYYY-MM-DD` 落在本週的任務 | 條列 + 負責人 |
 | 「哪個模組的任務最多還沒完成？」 | WBS.md 各模組的 `- [ ]` 統計 | 排名 + 數量 |
 
-### 6.2 NemoClaw System Prompt 補充
+### 6.2 OpenClaw System Prompt 補充
 
-在現有 PM 專用 System Prompt 中加入以下說明：
+在 `AGENTS.md` 中加入以下說明：
 
 ```
 WBS 任務格式：
@@ -365,7 +365,7 @@ Overdue 任務（`deadline < today AND status != 'Done'`）由 Web App 從 Supab
 | **Step 2** | 在各專案 `_Dashboard.md` 加入 WBS 總覽 Dataview 查詢 | 查詢能正確渲染 WBS 文件清單 |
 | **Step 3** | 確認 GitHub Actions 成功將 WBS 任務寫入 Supabase `tasks_sync` | push 後 ≤ 2 分鐘 Supabase 資料更新 |
 | **Step 4** | 建立 `Kanban.md`，將高優先任務放入看板 | Kanban Plugin 正確渲染欄位 |
-| **Step 5** | 更新 NemoClaw System Prompt，測試 WBS 問題集 | 5 題測試問題全數回答正確 |
+| **Step 5** | 更新 `AGENTS.md` System Prompt，測試 WBS 問題集 | 5 題測試問題全數回答正確 |
 
 ---
 

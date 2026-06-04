@@ -152,6 +152,32 @@ obsidian &
 
 ---
 
+## OpenClaw UI
+
+容器啟動後，可用瀏覽器開啟 Web 介面：
+
+| 項目 | 說明 |
+| :--- | :--- |
+| **URL** | `http://localhost:18789` |
+| **Token** | 見 `~/.openclaw/openclaw.json` > `gateway.auth.token` |
+
+> `setup.sh` 執行完成時會自動印出 Token，不需手動開檔案查找。
+
+---
+
+### 修改 System Prompt
+
+System Prompt 控制 AI 的行為與回答風格，可透過 UI 直接修改：
+
+1. 開啟 `http://localhost:18789`
+2. 左側選單點選「**代理**」
+3. 中間選單切換到「**檔案**」
+4. 找到 **AGENTS** → 在 **Content** 欄位修改內容
+
+修改後立即生效，不需重啟容器。
+
+---
+
 ## 常用管理指令
 
 ```bash

@@ -209,7 +209,7 @@ git push（自動觸發工程師端同步 + GitHub Actions 更新 Supabase）
   ↓
 打開 Web App → 查看 A 專案診斷頁（L2）
   或
-在 Discord 向 NemoClaw 輸入：「A 專案目前進度？」
+在 Discord 向 OpenClaw 輸入：「A 專案目前進度？」
   ↓
 30 秒內回答
 ```

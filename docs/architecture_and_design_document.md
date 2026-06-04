@@ -39,7 +39,7 @@ tags: [architecture]
 
 ---
 
-**目的**：本文件將「本地端個人 PM 系統」的業務需求轉化為完整技術藍圖，涵蓋系統各層次架構設計，作為七個功能模組（Frontmatter 規範、GitHub 同步、Obsidian 知識庫、NemoClaw 查詢層、WBS 進度控管、GitHub Actions 資料管道、Web App 團隊儀表板）的實作依據。
+**目的**：本文件將「本地端個人 PM 系統」的業務需求轉化為完整技術藍圖，涵蓋系統各層次架構設計，作為七個功能模組（Frontmatter 規範、GitHub 同步、Obsidian 知識庫、OpenClaw 查詢層、WBS 進度控管、GitHub Actions 資料管道、Web App 團隊儀表板）的實作依據。
 
 ---
 
@@ -57,7 +57,7 @@ graph TB
     CC[Claude Code\n文件產出工具]
     GH[GitHub\n版本控制 + Actions]
     OB[Obsidian\nPM 個人知識庫]
-    NC[NemoClaw\nDiscord Agent]
+    NC[OpenClaw\nDiscord Agent]
     SB[Supabase\n雲端進度資料庫]
     WEB[Web App\n團隊進度儀表板]
 
@@ -103,7 +103,7 @@ graph TB
         WEB[Web App React\nVercel 部署]
     end
 
-    NC[NemoClaw\nDiscord Agent]
+    NC[OpenClaw\nDiscord Agent]
 
     GIT -->|git pull| REPO
     GIT -->|更新| VAULT
@@ -129,7 +129,7 @@ graph LR
     subgraph 查詢層
         DQ1[Dataview TABLE\n文件狀態總覽]
         DQ2[Dataview TASK\nWBS 任務進度]
-        NLQ[NemoClaw\n自然語言問答]
+        NLQ[OpenClaw\n自然語言問答]
     end
 
     FM -->|結構化查詢| DQ1
@@ -168,7 +168,7 @@ graph LR
 | **資料層** | `.md` 文件 + YAML Frontmatter | 唯一寫入源，同時服務人類閱讀與機器解析 |
 | **本地同步層** | Obsidian Git Plugin（auto pull 1分鐘） | 將 GitHub 最新文件同步到本地 Vault |
 | **雲端資料層** | GitHub Actions + Supabase | 解析 WBS 任務/里程碑寫入雲端結構化資料庫 |
-| **呈現層** | Obsidian（個人）+ NemoClaw（查詢）+ Web App（團隊） | 從資料層派生視圖，各層對資料層只讀 |
+| **呈現層** | Obsidian（個人）+ OpenClaw（查詢）+ Web App（團隊） | 從資料層派生視圖，各層對資料層只讀 |
 
 設計原則：**所有寫入均透過 Claude Code → git push 進行**；Supabase 和 Obsidian 都是衍生資料，`.md` 文件永遠是最終依據。
 
@@ -187,15 +187,16 @@ graph LR
 | **理由** | 原生支援 `.md`；Dataview 支援 SQL-like 查詢 frontmatter；Mermaid 零額外設定；本地儲存無訂閱費 |
 | **取捨** | 不支援多人即時協作（個人使用場景，不需要） |
 
-#### ADR-002：NemoClaw + Discord Agent 作為自然語言查詢層
+#### ADR-002：OpenClaw Discord Agent 作為自然語言查詢層
 
 **狀態**：已決定
 
 | 面向 | 說明 |
 | :--- | :--- |
 | **問題** | 需要能讀取本地目錄 `.md`、透過通訊頻道回答問題的 AI 助手 |
-| **決策** | 採用 NemoClaw（Docker 沙盒）+ Discord Bot，PM 在 Discord 頻道提問 |
-| **理由** | Discord 為工程師慣用頻道；Docker 隔離環境；本地運行不上傳文件；支援自訂 System Prompt |
+| **決策** | 採用 OpenClaw Docker 沙盒，Discord Bot 整合內建，PM 在 Discord 頻道 @mention 提問 |
+| **理由** | Discord 為工程師慣用頻道；Docker 隔離環境；本地運行不上傳文件；Discord 整合無需另起 Python Bot；`AGENTS.md` 支援自訂 System Prompt |
+| **取捨** | 依賴外部 API 端點（OpenRouter / Anthropic）進行推論，非完全離線 |
 | **待驗證** | 中文 `.md` 解析品質；大量文件時的查詢延遲 |
 
 #### ADR-003：YAML Frontmatter 欄位設計
@@ -206,7 +207,7 @@ graph LR
 | :--- | :--- |
 | **問題** | 決定 frontmatter 欄位組成，平衡查詢彈性與維護成本 |
 | **決策** | 8 個核心欄位（`project / doc_type / status / phase / priority / owner / updated / tags`）+ WBS 專用欄位（`total_tasks` / `module_count` / `team`） |
-| **排除** | `deadline`（放正文，由 NemoClaw 讀取）；`milestone`（粒度太細，屬 WBS 內容） |
+| **排除** | `deadline`（放正文，由 OpenClaw 讀取）；`milestone`（粒度太細，屬 WBS 內容） |
 
 #### ADR-004：Obsidian Git 外掛作為同步機制
 
@@ -225,9 +226,9 @@ graph LR
 
 | 面向 | 說明 |
 | :--- | :--- |
-| **問題** | 需要一個能讓 Web App 讀取結構化進度資料的後端，且要支援 RBAC 與即時更新 |
+| **問題** | 需要一個能讓 Web App 讀取結構化進度資料的後端，且要支援 RBAC |
 | **決策** | 採用 Supabase（managed PostgreSQL），啟用 Row Level Security |
-| **理由** | 零維護後端；內建 Auth + RLS；Supabase Realtime 支援 Web App 即時更新；`service_role` key 可讓 Actions 繞過 RLS 寫入 |
+| **理由** | 零維護後端；內建 Auth + RLS；`service_role` key 可讓 Actions 繞過 RLS 寫入 |
 | **取捨** | 引入雲端依賴；免費方案有 500MB 限制（對純文件 metadata 的資料量而言足夠） |
 
 #### ADR-006：React Web App 作為團隊儀表板
@@ -264,14 +265,14 @@ graph LR
 | **FR-2** | GitHub → Obsidian 自動同步（Obsidian Git Plugin），延遲 ≤ 1 分鐘 | US-001 |
 | **FR-3** | Obsidian 個人知識庫：Mermaid 渲染、Graph View、各專案 _Dashboard.md 查閱 | — |
 | **FR-4** | Kanban 看板：WBS 子任務拖拉管理 | US-005 |
-| **FR-5** | NemoClaw 文件層查詢：phase、status、風險（索引整個 Vault） | US-006 |
-| **FR-6** | NemoClaw WBS 任務層查詢：未完成數量、負責人 `[owner::]`、deadline | US-007 |
+| **FR-5** | OpenClaw 文件層查詢：phase、status、風險（索引整個 Vault） | US-006 |
+| **FR-6** | OpenClaw WBS 任務層查詢：未完成數量、負責人 `[owner::]`、deadline | US-007 |
 | **FR-7** | GitHub Actions 管道：push 後 ≤ 2 分鐘解析 WBS 任務並寫入 Supabase | US-008 |
 | **FR-8** | Supabase RBAC：Admin/Developer/Viewer 三角色，RLS 控制資料存取範圍 | US-009 |
 | **FR-9** | Web App PM 視圖：L1 專案組合總覽 / L2 診斷中心 / L3 任務明細 | US-003、US-004 |
 | **FR-10** | Web App 工程師視圖：今日待辦 / Kanban / 任務詳情 | US-010 |
 | **FR-11** | Web App 客戶視圖：交付摘要 / Roadmap | US-011 |
-| **FR-12** | Supabase Realtime：Web App 即時反映最新任務狀態，無需手動重新整理 | US-010 |
+
 
 ### 2.2 非功能性需求 (NFRs)
 
@@ -279,7 +280,7 @@ graph LR
 | :--- | :--- | :--- |
 | **本地同步延遲** | git push 後 Obsidian Vault 反映最新文件 | ≤ 1 分鐘 |
 | **雲端同步延遲** | git push 後 Supabase 任務資料更新 | ≤ 2 分鐘 |
-| **查詢準確率** | NemoClaw 回答標準測試集 | ≥ 90%（10 題中答對 9 題） |
+| **查詢準確率** | OpenClaw 回答標準測試集 | ≥ 90%（10 題中答對 9 題） |
 | **Dataview 渲染正確率** | 所有預設查詢正確渲染無錯誤 | 100% |
 | **零重複輸入** | `.md` 文件為唯一寫入源，所有視圖均由系統自動產生 | 工具切換次數 ≤ 2 |
 | **Frontmatter 覆蓋率** | 所有 Claude Code 產出的 `.md` 帶有正確 frontmatter | 100% |
@@ -300,14 +301,14 @@ Claude Code / 工程師 → git push → GitHub
 路徑 A（本地知識庫）：
 GitHub → Obsidian Git Plugin（每 1 分鐘）→ Obsidian Vault
   └→ Dataview（結構化視圖）
-  └→ NemoClaw（自然語言查詢）
+  └→ OpenClaw（自然語言查詢）
 
 路徑 B（雲端進度資料庫）：
 GitHub → GitHub Actions（push 觸發）→ Python 腳本解析 YAML + WBS + 里程碑
   └→ Supabase upsert → Web App（三角色儀表板）
 ```
 
-**選擇理由**：核心約束仍是「零重複輸入」。兩條路徑都從同一來源（`.md` 文件）派生，服務不同場景：Obsidian + NemoClaw 服務 PM 個人深度查閱；Supabase + Web App 服務多角色共用進度追蹤。
+**選擇理由**：核心約束仍是「零重複輸入」。兩條路徑都從同一來源（`.md` 文件）派生，服務不同場景：Obsidian + OpenClaw 服務 PM 個人深度查閱；Supabase + Web App 服務多角色共用進度追蹤。
 
 ### 3.2 主要元件職責
 
@@ -317,10 +318,10 @@ GitHub → GitHub Actions（push 觸發）→ Python 腳本解析 YAML + WBS + �
 | **Obsidian Git 外掛** | 每 1 分鐘自動 pull GitHub 最新文件到本地 Vault | Obsidian Community Plugin + git | Obsidian、GitHub |
 | **Obsidian Dataview** | 從 frontmatter 動態渲染表格/清單視圖（個人儀表板） | DQL（Dataview Query Language） | Vault 文件、Frontmatter |
 | **Obsidian Kanban** | 提供 WBS 任務的拖拉式操作介面 | Kanban Plugin | Kanban.md 任務清單 |
-| **NemoClaw + Discord Agent** | 理解自然語言問題，從整個 Vault 文件回答 | Docker + OpenClaw + Discord Bot | ~/ObsidianVault/ 完整目錄 |
+| **OpenClaw Discord Agent** | 理解自然語言問題，從整個 Vault 文件回答 | Docker（openclaw-gateway）+ `@openclaw/discord` plugin | ~/ObsidianVault/ 完整目錄 |
 | **GitHub Actions** | 偵測 `.md` 變更，執行 Python 腳本解析並 upsert Supabase | GitHub Actions Workflow + Python | GitHub Repo、Supabase service_role |
 | **Supabase** | 儲存結構化進度資料，提供 RLS 控制的 API 給 Web App | PostgreSQL + Row Level Security | GitHub Actions（寫入）、Web App（讀取） |
-| **Web App** | 三角色進度儀表板，從 Supabase 讀取並即時呈現 | React + Recharts + Supabase Realtime | Supabase anon key + RLS |
+| **Web App** | 三角色進度儀表板，從 Supabase 讀取並呈現 | React + Recharts | Supabase anon key + RLS |
 
 ### 3.3 關鍵使用者旅程
 
@@ -335,9 +336,9 @@ GitHub → GitHub Actions（push 觸發）→ Python 腳本解析 YAML + WBS + �
 #### 旅程 2：PM 接到利害關係人臨時詢問
 
 1. 利害關係人詢問：「金流模組現在進度怎麼樣？」
-2. PM 在 Discord 向 NemoClaw 輸入：「金流模組還剩幾個任務，誰負責？」
-3. NemoClaw 掃描整個 Vault 中的 WBS.md，找到金流相關的 `- [ ]` 任務行
-4. NemoClaw 回傳：未完成任務數量、任務描述、負責人（`[owner:: BE:張後端]`）、deadline
+2. PM 在 Discord 向 OpenClaw @mention：「金流模組還剩幾個任務，誰負責？」
+3. OpenClaw 掃描整個 Vault 中的 WBS.md，找到金流相關的 `- [ ]` 任務行
+4. OpenClaw 回傳：未完成任務數量、任務描述、負責人（`[owner:: BE:張後端]`）、deadline
 5. PM 在 30 秒內回答，不需打開任何其他工具
 
 #### 旅程 3：PM 每日檢視全局風險
@@ -355,7 +356,7 @@ GitHub → GitHub Actions（push 觸發）→ Python 腳本解析 YAML + WBS + �
 ### 4.1 技術選型原則
 
 - **文件為唯一寫入源**：所有工具只負責讀取/渲染，寫入只透過 Claude Code → git push 進行
-- **按場景選擇工具**：本地個人閱讀用 Obsidian + NemoClaw；雲端多角色共用用 Supabase + Web App
+- **按場景選擇工具**：本地個人閱讀用 Obsidian + OpenClaw；雲端多角色共用用 Supabase + Web App
 - **基於現有技能**：依賴 PM 已熟悉的 git、Markdown 工作流，降低學習成本
 - **最小自建後端**：優先使用 managed 服務（Supabase、Vercel、GitHub Actions），不自建伺服器
 
@@ -365,10 +366,10 @@ GitHub → GitHub Actions（push 觸發）→ Python 腳本解析 YAML + WBS + �
 | :--- | :--- | :--- | :--- | :--- |
 | **本地知識庫** | Obsidian + Dataview Plugin | 原生 `.md`；Dataview SQL-like 查詢 frontmatter；Mermaid 渲染；本地免費 | Notion（需手動輸入）、GitHub Pages（無動態查詢） | ADR-001 |
 | **任務看板** | Obsidian Kanban Plugin | 與 Obsidian 同生態，讀取 Kanban.md 中的 `- [ ]` | Trello（需另外登入）、Linear（與 `.md` 不整合） | ADR-001 |
-| **自然語言查詢** | NemoClaw + Discord Agent | Docker 沙盒；Discord 頻道提問；可自訂 System Prompt；索引整個 Vault | ChatGPT（文件需手動貼入）、Notion AI（資料需在 Notion 內） | ADR-002 |
+| **自然語言查詢** | OpenClaw Discord Agent | Docker 沙盒；Discord 頻道提問；Discord 整合內建；`AGENTS.md` 自訂 System Prompt；索引整個 Vault | ChatGPT（文件需手動貼入）、Notion AI（資料需在 Notion 內） | ADR-002 |
 | **本地同步** | Obsidian Git Plugin | 無需 Terminal；跨平台；適合全體成員；auto pull 1 分鐘 | crontab + 腳本（需 Terminal，不適合非技術成員） | ADR-004 |
 | **資料管道** | GitHub Actions + Python | 零額外基礎設施；與 git push 無縫整合；Python 腳本易維護 | 自建 webhook server（需維護）、手動輸入（違反零重複輸入原則） | ADR-007 |
-| **雲端資料庫** | Supabase（PostgreSQL） | managed 服務；內建 Auth + RLS；Realtime 支援；service_role key 給 Actions | Firebase（NoSQL，查詢彈性低）、PlanetScale（無 RLS） | ADR-005 |
+| **雲端資料庫** | Supabase（PostgreSQL） | managed 服務；內建 Auth + RLS；service_role key 給 Actions | Firebase（NoSQL，查詢彈性低）、PlanetScale（無 RLS） | ADR-005 |
 | **團隊儀表板** | React + Recharts + Vercel | 彈性最高；Recharts 支援 S-Curve/CFD；Vercel 零配置部署 | Metabase（需自建）、Retool（低程式碼但訂閱費） | ADR-006 |
 | **Frontmatter 模板** | Obsidian Templater Plugin | 新文件自動帶入 YAML frontmatter，減少人工遺漏 | 手動複製貼上（易遺漏欄位） | ADR-003 |
 | **文件格式** | Markdown + YAML | 純文字、跨工具相容、git 版控友善 | JSON/CSV（可讀性差）、Notion Database（資料鎖定） | ADR-003 |
@@ -406,7 +407,7 @@ team:                        # 角色 → {name, email}，email 供 GitHub Actio
 
 #### Layer 2：文件正文（人讀 + 機器讀）
 
-- **章節結構**（`##`/`###`）：供 NemoClaw 語意理解使用
+- **章節結構**（`##`/`###`）：供 OpenClaw 語意理解使用
 - **Mermaid 圖表**：Obsidian 原生渲染，零額外設定
 - **WBS 任務**（`- [ ]` / `- [x]`）：供 GitHub Actions 解析寫入 Supabase
 
@@ -435,7 +436,7 @@ graph LR
     GH -->|Obsidian Git Plugin\n每 1 分鐘| VAULT[Obsidian Vault\n本地 .md 文件]
     GH -->|Actions 觸發\n*.md 變更| PY[Python 腳本\n解析 YAML + WBS + 里程碑]
     VAULT -->|Frontmatter| DV[Dataview\n個人儀表板]
-    VAULT -->|全文| NC[NemoClaw\nDiscord Agent]
+    VAULT -->|全文| NC[OpenClaw\nDiscord Agent]
     PY -->|service_role upsert| SB[Supabase\ntasks_sync / milestones]
     SB -->|anon key + RLS| WEB[Web App\n三角色儀表板]
 ```
@@ -458,7 +459,7 @@ graph LR
 | Supabase tasks_sync | Supabase 雲端 PostgreSQL | Actions Upsert 保持最新狀態；隨專案刪除 |
 | Supabase milestones | Supabase 雲端 PostgreSQL | Actions Upsert；隨專案刪除 |
 | GitHub Actions run logs | GitHub | 保留 90 天（預設）；失敗時人工查閱 |
-| NemoClaw 查詢記錄 | NemoClaw Docker 本地儲存 | 依 NemoClaw 預設設定 |
+| OpenClaw 查詢記錄 | OpenClaw Docker 本地儲存 | 依 OpenClaw 預設設定 |
 
 ---
 
@@ -483,9 +484,9 @@ graph LR
 │   ├── Templater Plugin  ← 新文件自動帶入 frontmatter
 │   └── Obsidian Git Plugin  ← 每 1 分鐘 auto pull / auto push
 │
-└── NemoClaw（Docker 沙盒）
-    ├── OpenClaw（在 NemoClaw Docker 沙盒內執行，讀取 ~/ObsidianVault/ 整個 Vault）
-    └── Discord Bot（main.py Flask + Discord bot）
+└── OpenClaw（Docker 沙盒，container: openclaw-discord）
+    ├── openclaw-gateway（讀取 ~/ObsidianVault/ 整個 Vault）
+    └── @openclaw/discord plugin（Discord Bot 內建，無需另起服務）
 
 GitHub（版控 + 資料管道）
 ├── GitHub Repos   ← .md 文件版控
@@ -495,8 +496,7 @@ GitHub（版控 + 資料管道）
 
 雲端服務
 ├── Supabase（PostgreSQL + RLS）
-│   ├── projects / tasks_sync / milestones / project_access / profiles
-│   └── Realtime subscription（Web App 即時更新）
+│   └── projects / tasks_sync / milestones / project_access / profiles
 │
 └── Vercel（Web App 前端）
     └── React + Recharts  ← 三角色儀表板
@@ -529,7 +529,7 @@ GitHub（版控 + 資料管道）
 | 開啟稀疏檢出 | `git submodule foreach 'git sparse-checkout init --cone && git sparse-checkout set "/**/*.md"'` | Phase 1 |
 | 安裝 Obsidian Plugins | Dataview、Kanban、Templater、**Obsidian Git** | Phase 1-2 |
 | 設定 Obsidian Git | Update submodules: 開啟、Auto pull interval: 1 分鐘、Pull on startup: 開啟 | Phase 1（全體成員） |
-| 啟動 NemoClaw | `docker-compose up -d`，設定讀取 `~/ObsidianVault/` | Phase 3 |
+| 啟動 OpenClaw | 填寫 `openclaw_for_obsidian/.env`，執行 `setup.sh` | Phase 3 |
 | 建立 Supabase Schema | 執行 `Supabase_Schema設計規格書.md` 中的 SQL | Phase 4 |
 | 設定 GitHub Actions Secrets | `SUPABASE_URL` + `SUPABASE_KEY`（service_role） | Phase 4 |
 | 建立 Actions Workflow | `scripts/sync_to_supabase.py` + `.github/workflows/sync_to_supabase.yml` | Phase 4 |
@@ -547,16 +547,16 @@ GitHub（版控 + 資料管道）
 | **GitHub Actions 監控** | GitHub Actions 頁面查看每次 workflow run 狀態；失敗時 GitHub 自動發送 email 通知 |
 | **Supabase 資料驗證** | push 後 2 分鐘在 Supabase Table Editor 確認 tasks_sync 資料已更新 |
 | **Frontmatter 覆蓋率** | 定期執行 `grep -rL "^project:" ~/ObsidianVault/` 找出缺少 frontmatter 的文件 |
-| **NemoClaw 準確率** | 維護 10 題標準測試集，每週手動驗證一次 |
+| **OpenClaw 準確率** | 維護 10 題標準測試集，每週手動驗證一次 |
 
 ### 7.2 安全性
 
 | 面向 | 設計 |
 | :--- | :--- |
-| **文件資料主權** | 所有 `.md` 文件存於本地 + GitHub；NemoClaw 本地 Docker 運行，不將文件內容上傳第三方雲端 |
+| **文件資料主權** | 所有 `.md` 文件存於本地 + GitHub；OpenClaw 本地 Docker 運行，文件內容不離開本地機器 |
 | **GitHub 存取** | 使用 SSH Key 進行 git pull；Actions 使用 GitHub Secrets 儲存 Supabase 憑證，不明文存在程式碼 |
 | **Supabase 存取控制** | RLS 政策確保用戶只能查看有權限的專案資料；Web App 使用 `anon` key，Actions 使用 `service_role` key |
-| **NemoClaw 通訊** | 透過 Discord 官方加密頻道，查詢結果不儲存於雲端 |
+| **OpenClaw 通訊** | 透過 Discord 官方加密頻道，查詢結果不儲存於雲端 |
 | **Web App 認證** | 透過 Supabase Auth 管理用戶身份；`project_access` 表控制各用戶的專案可見範圍 |
 
 ---
@@ -567,7 +567,7 @@ GitHub（版控 + 資料管道）
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **R-01** | 規範 | Frontmatter 欄位名稱不一致，Dataview 查詢回傳空結果或 Actions 解析失敗 | 高 | 高 | 在 CLAUDE.md 固定格式；使用 Templater 自動套入；Phase 0 驗證 3 份文件後再繼續 |
 | **R-02** | 同步 | Obsidian 未開啟時不自動同步，PM 看到過期本地文件 | 低 | 低 | 開啟 Obsidian 時自動補齊離線期間更新；Web App 的資料來自 Supabase 不受此影響 |
-| **R-03** | 查詢 | NemoClaw 對中文 `.md` 解析品質不穩定，回答出現幻覺或遺漏 | 中 | 中 | Phase 3 以 10 題測試集驗收；定期重新測試；不穩定時降級為直接查 Obsidian |
+| **R-03** | 查詢 | OpenClaw 對中文 `.md` 解析品質不穩定，回答出現幻覺或遺漏 | 中 | 中 | Phase 3 以 10 題測試集驗收；定期重新測試；不穩定時降級為直接查 Obsidian |
 | **R-04** | 規範 | WBS 任務 `[owner:: 角色:姓名]` 格式錯誤，GitHub Actions regex 解析失敗導致 assignee_email 為 NULL | 中 | 低 | WBS 文件建立時以 `team` frontmatter 為唯一角色定義；Actions 解析失敗僅影響 email，任務仍寫入 |
 | **R-05** | 管道 | GitHub Actions 腳本執行失敗，Supabase 資料未更新 | 低 | 中 | GitHub 自動發送 fail 通知；Actions 支援手動重觸發；`.md` 文件本身不受影響 |
 | **R-06** | 安全 | Supabase RLS 政策設定錯誤，用戶可查看未授權的專案資料 | 低 | 高 | Phase 4 以三角色測試驗收 RLS；使用 `service_role` 測試 RLS bypass 確認政策正確 |
@@ -592,8 +592,8 @@ GitHub（版控 + 資料管道）
 - 驗收：Obsidian 作為個人知識庫可正常使用
 
 ### Phase 3（Day 4-5）：自然語言查詢
-- 啟動 NemoClaw Docker，連接整個 Vault（`~/ObsidianVault/`）
-- 設定 Discord Bot，套入 PM 專用 System Prompt（含 WBS `[owner::]` 任務格式說明）
+- 填寫 `openclaw_for_obsidian/.env`，執行 `setup.sh` 啟動 OpenClaw Docker（Discord Bot 內建）
+- 更新 `AGENTS.md`，套入 PM 專用 System Prompt（含 WBS `[owner::]` 任務格式說明）
 - 驗收：10 題標準測試集答對 9 題以上
 
 ### Phase 4（Day 6-7）：資料管道
@@ -604,10 +604,10 @@ GitHub（版控 + 資料管道）
 ### Phase 5（Day 8-14）：Web App 儀表板
 - 建立 React Web App，接入 Supabase，實作三角色 Dashboard（PM/工程師 L1/L2/L3 鑽取式；客戶 L1/L2 摘要）
 - 部署至 Vercel
-- 驗收：三角色可正常登入並查看各自視圖；Supabase Realtime 即時反映任務更新
+- 驗收：三角色可正常登入並查看各自視圖
 
 ### 未來演進（Post-MVP）
-- 若 NemoClaw 不穩定，評估替換為其他本地 RAG 方案（如 Obsidian Local GPT Plugin）
+- 若 OpenClaw 不穩定，評估替換為其他本地 RAG 方案（如 Obsidian Local GPT Plugin）
 - 若專案數超過 5 個且 Dataview 效能下降，改為純 per-project 個別儀表板
 - 考慮為 Web App 加入 PM 直接在 UI 更新任務狀態的功能（需調整 Single Source of Truth 原則）
 

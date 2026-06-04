@@ -1,8 +1,0 @@
-# RESTful API 規範制定
-
-Action Type: 功能評估
-Assigned: 彥佑 陳
-Parent task: API 設計規範 (API%20%E8%A8%AD%E8%A8%88%E8%A6%8F%E7%AF%84%202fd8445e8dc6808b90d6ccec555a90f4.md)
-Priority: High
-Projects: TrustCase (../Projects/TrustCase%202c18445e8dc68185a69fc5c8a8b441d1.md)
-Status: Done

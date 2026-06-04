@@ -39,7 +39,7 @@ Python 腳本解析：
     ↓
 Supabase Upsert
     ↓
-Web App 即時更新
+Web App 更新
 ```
 
 ---

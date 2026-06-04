@@ -56,7 +56,7 @@ for var in "${REQUIRED_VARS[@]}"; do
 done
 
 # Set defaults for optional vars
-OPENCLAW_IMAGE="${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:2026.5.20}"
+OPENCLAW_IMAGE="${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest}"
 API_URL="${API_URL:-https://openrouter.ai/api/v1}"
 DISCORD_REQUIRE_MENTION="${DISCORD_REQUIRE_MENTION:-1}"
 LOG_LEVEL="${LOG_LEVEL:-info}"
@@ -213,7 +213,7 @@ setup_openclaw_config() {
 OPENCLAW_IMAGE=${OPENCLAW_IMAGE}
 OPENCLAW_CONFIG_DIR=/home/node/.openclaw
 OPENCLAW_WORKSPACE_DIR=/home/node/.openclaw/workspace
-OPENCLAW_GATEWAY_BIND=loopback
+OPENCLAW_GATEWAY_BIND=lan
 OPENCLAW_GATEWAY_PORT=18789
 OPENCLAW_ALLOW_INSECURE_PRIVATE_WS=true
 EOF
@@ -238,7 +238,7 @@ EOF
   "gateway": {
     "mode": "local",
     "port": 18789,
-    "bind": "loopback",
+    "bind": "lan",
     "auth": {
       "mode": "token",
       "token": "${gateway_token}"
@@ -438,4 +438,15 @@ echo "  開啟 Obsidian > File > Open Vault > 選擇上方路徑"
 echo ""
 echo "  查看容器狀態："
 echo "  docker ps | grep openclaw-discord"
+echo ""
+echo "────────────────────────────────────────"
+echo "  OpenClaw UI"
+echo "  URL   : http://localhost:18789"
+GATEWAY_TOKEN=$(python3 -c "import json; d=json.load(open('${OPENCLAW_CONFIG_DIR}/openclaw.json')); print(d['gateway']['auth']['token'])" 2>/dev/null || echo "(無法讀取，請手動查看)")
+echo "  Token : ${GATEWAY_TOKEN}"
+echo "  Token 位置：${OPENCLAW_CONFIG_DIR}/openclaw.json > gateway.auth.token"
+echo ""
+echo "  修改 System Prompt："
+echo "  開啟 http://localhost:18789"
+echo "  左側選單「代理」→ 中間選單「檔案」→ AGENTS → Content 欄位修改"
 echo "======================================"
