@@ -1,0 +1,33 @@
+name: WBS → Supabase Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**/WBS.md"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: scripts/requirements_supabase.txt
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements_supabase.txt
+
+      - name: Sync WBS to Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python scripts/sync_wbs_to_supabase.py

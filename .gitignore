@@ -223,3 +223,14 @@ __marimo__/
 /claude-agentic-coding-template
 /18
 build_and_push.sh
+/VibeCoding_Workflow_Templates
+
+# Environment variables (NEVER commit — contains Supabase keys)
+.env.local
+.env.*.local
+web/.env.local
+
+# Web App build output
+web/dist/
+web/node_modules/
+client_secret_1073690745166-lq8hq3v6b41clvmidp3jhgkb60mbdvf7.apps.googleusercontent.com.json
