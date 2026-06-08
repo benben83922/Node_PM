@@ -63,6 +63,16 @@ export default function TaskDetail({ task, isLoading, error }) {
             <dt className="text-xs text-gray-400 dark:text-gray-500 mb-0.5">負責角色</dt>
             <dd className="text-sm text-gray-800 dark:text-gray-200">{task.assignee_role ?? '—'}</dd>
           </div>
+
+          {isBlocked && task.yaml_data?.reason && (
+            <div className="sm:col-span-2 bg-red-50 dark:bg-red-950/30 rounded-lg p-3 border border-red-100 dark:border-red-900/50">
+              <dt className="text-xs text-red-500 dark:text-red-400 mb-1 font-medium">卡關原因</dt>
+              <dd className="text-sm text-red-700 dark:text-red-300 flex items-start gap-1.5">
+                <span className="flex-shrink-0">🔒</span>
+                <span>{task.yaml_data.reason}</span>
+              </dd>
+            </div>
+          )}
         </dl>
 
         {task.yaml_data && Object.keys(task.yaml_data).length > 0 && (

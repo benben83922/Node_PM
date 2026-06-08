@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import PriorityTag from '../atoms/PriorityTag'
 import { formatDate } from '../../lib/formatters'
 
 const COLUMNS = [
@@ -34,6 +35,7 @@ export default function KanbanView({ tasks, basePath }) {
               <span className="text-xs text-gray-400 dark:text-gray-500">{colTasks.length}</span>
             </div>
             {colTasks.map(t => {
+              const priority = t.yaml_data?.priority ?? null
               const card = (
                 <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-2 space-y-1 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm transition">
                   <p className="text-xs font-medium text-gray-700 dark:text-gray-300 line-clamp-2">{t.title}</p>
@@ -41,6 +43,9 @@ export default function KanbanView({ tasks, basePath }) {
                     <span className="text-[10px] text-gray-400 dark:text-gray-500 font-mono">{t.external_id}</span>
                     {t.deadline && <span className="text-[10px] text-gray-400 dark:text-gray-500">{formatDate(t.deadline)}</span>}
                   </div>
+                  {priority && (
+                    <div><PriorityTag priority={priority} /></div>
+                  )}
                 </div>
               )
               return basePath

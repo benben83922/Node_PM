@@ -26,6 +26,7 @@ export default function PmL3Page() {
                   <th className="py-2 px-3">ID</th>
                   <th className="py-2 px-3">標題</th>
                   <th className="py-2 px-3">狀態</th>
+                  <th className="py-2 px-3">優先度</th>
                   <th className="py-2 px-3">負責人</th>
                   <th className="py-2 px-3">截止日</th>
                 </tr>

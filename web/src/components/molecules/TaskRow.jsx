@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom'
 import StatusTag from '../atoms/StatusTag'
+import PriorityTag from '../atoms/PriorityTag'
 import { formatDate, daysUntil } from '../../lib/formatters'
 
 export default function TaskRow({ task, detailPath }) {
   const days = daysUntil(task.deadline)
   const isBlocked = task.yaml_data?.blocked === true
+  const priority  = task.yaml_data?.priority ?? null
 
   const cells = (
     <>
@@ -15,6 +17,7 @@ export default function TaskRow({ task, detailPath }) {
           : task.title}
       </td>
       <td className="py-2 px-3"><StatusTag status={isBlocked ? 'Blocked' : task.status} /></td>
+      <td className="py-2 px-3"><PriorityTag priority={priority} /></td>
       <td className="py-2 px-3 text-xs text-gray-500 dark:text-gray-400">{task.assignee_email ?? '—'}</td>
       <td className="py-2 px-3 text-xs whitespace-nowrap">
         {task.deadline ? (
