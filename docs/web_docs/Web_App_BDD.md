@@ -13,8 +13,8 @@ tags: [web-app, bdd, gherkin, dashboard]
 
 ---
 
-**文件版本 (Document Version):** `v1.0`
-**最後更新 (Last Updated):** `2026-06-05`
+**文件版本 (Document Version):** `v1.2`
+**最後更新 (Last Updated):** `2026-06-08`
 **主要作者 (Lead Author):** `PM、技術負責人`
 **審核者 (Reviewers):** `技術負責人`
 **狀態 (Status):** `草稿 (Draft)`
@@ -555,6 +555,313 @@ Feature: 進度計算與資料同步
 
 ---
 
-**文件版本**：v1.0
-**最後更新**：2026-06-05
+## Feature 11: 資料同步新鮮度指示器
+
+**對應 PRD:** US-012
+**說明:** PM L1 頁面頂部顯示 Supabase 資料最後更新時間，讓 PM 判斷資料是否可信。
+
+```gherkin
+Feature: 資料同步新鮮度指示器
+
+  Background:
+    Given 我以 Admin 身份登入
+    And 我在 "/pm" 頁面
+
+  @happy-path @smoke-test
+  Scenario: 資料新鮮時顯示綠色燈號
+    Given "tasks_sync" 中最新 updated_at 距今不超過 2 小時
+    Then 頁面頂部顯示綠色燈號（🟢）
+    And 顯示格式為「最後同步：YYYY/MM/DD HH:MM」
+
+  @happy-path
+  Scenario: 資料超過 2 小時未更新時顯示警告
+    Given "tasks_sync" 中最新 updated_at 距今超過 2 小時但未超過 24 小時
+    Then 頁面頂部顯示黃色燈號（🟡）
+    And 顯示文字「超過 2 小時未更新」
+
+  @sad-path
+  Scenario: 資料超過 24 小時未更新時顯示紅色燈號
+    Given "tasks_sync" 中最新 updated_at 距今超過 24 小時
+    Then 頁面頂部顯示紅色燈號（🔴）
+    And 顯示文字「超過 24 小時未更新」
+
+  @edge-case
+  Scenario: 無任何同步記錄時顯示灰色狀態
+    Given "tasks_sync" 表中無任何資料
+    Then 燈號顯示灰色（⚫）
+    And 顯示文字「尚無同步記錄」
+```
+
+---
+
+## Feature 12: 本週里程碑跨專案匯總面板
+
+**對應 PRD:** US-013
+**說明:** PM L1 頂部呈現未來 7 天即將到期的里程碑，跨所有可見專案匯總。
+
+```gherkin
+Feature: 本週里程碑跨專案匯總面板
+
+  Background:
+    Given 我以 Admin 身份登入
+    And 我在 "/pm" 頁面
+
+  @happy-path @smoke-test
+  Scenario: 本週有到期里程碑時顯示匯總面板
+    Given 以下里程碑 planned_date 在今日起 7 天內且 is_completed = false：
+      | 里程碑名稱    | 所屬專案   | planned_date |
+      | 後端 API 交付 | 電商平台重構 | 今日 +3 天  |
+      | 前端整合上線  | Node_PM    | 今日 +5 天  |
+    Then 頁面頂部顯示「本週即將到期里程碑（2 個）」面板
+    And 面板中顯示兩筆里程碑，各含里程碑名稱、所屬專案名稱、距到期天數
+
+  @happy-path
+  Scenario: 今天到期的里程碑以紅色標示
+    Given 一個里程碑 planned_date = 今日且 is_completed = false
+    Then 該里程碑顯示文字「今天到期」，以紅色標示
+
+  @edge-case
+  Scenario: 本週無到期里程碑時面板不顯示
+    Given 所有里程碑的 planned_date 均超過 7 天後，或 is_completed = true
+    Then 頁面頂部不顯示本週里程碑面板
+
+  @happy-path
+  Scenario: 點擊里程碑導向對應專案 L2 診斷頁
+    Given 面板顯示「後端 API 交付」屬於專案 "ProjectA"
+    When 我點擊「後端 API 交付」
+    Then 我應被導向 "/pm/{ProjectA_id}/milestones"
+```
+
+---
+
+## Feature 13: 任務優先度顯示
+
+**對應 PRD:** US-014
+**說明:** 在 PM L3 任務清單、工程師 L1 待辦、Kanban 卡片上顯示任務優先度（來自 yaml_data.priority）。
+
+```gherkin
+Feature: 任務優先度顯示
+
+  Background:
+    Given Supabase "tasks_sync" 中部分任務的 yaml_data 包含 priority 欄位
+
+  @happy-path @smoke-test
+  Scenario Outline: 不同優先度以對應色標顯示
+    Given 任務 "T-001" 的 yaml_data.priority = "<priority>"
+    When PM 或工程師查看包含該任務的清單頁面
+    Then 任務旁顯示優先度標籤，顏色為 "<color>"
+
+    Examples:
+      | priority | color  |
+      | High     | 紅色   |
+      | Medium   | 黃色   |
+      | Low      | 灰色   |
+
+  @edge-case
+  Scenario: yaml_data.priority 為 null 時顯示破折號
+    Given 任務 "T-002" 的 yaml_data 為 null 或不含 priority 欄位
+    When 查看包含該任務的清單頁面
+    Then 優先度欄顯示「—」，不報錯、不顯示空白
+
+  @happy-path
+  Scenario: Kanban 卡片有優先度時顯示標籤
+    Given 任務 "T-003" 的 yaml_data.priority = "High"
+    When 工程師查看 L2 Kanban 頁面
+    Then 該任務卡片底部顯示紅色「高」標籤
+```
+
+---
+
+## Feature 14: 工程師 L2 Kanban 專案名稱標題
+
+**對應 PRD:** US-015
+**說明:** EngineerL2Page 標題顯示真實專案名稱，而非固定文字「專案 Kanban」。
+
+```gherkin
+Feature: 工程師 L2 Kanban 專案名稱標題
+
+  Background:
+    Given 我以 Developer 或 Admin 身份登入
+    And 我進入某個專案的 Kanban 頁面 "/engineer/{projectId}"
+
+  @happy-path @smoke-test
+  Scenario: 頁面標題顯示正確的專案名稱
+    Given 該 projectId 對應的專案名稱為「電商平台重構」
+    Then 頁面標題顯示「電商平台重構 — Kanban」
+
+  @happy-path
+  Scenario: 頁面提供返回工程師 L1 的連結
+    Then 頁面左上角顯示「← 返回」連結
+    When 我點擊「← 返回」
+    Then 我應被導向 "/engineer"
+
+  @edge-case
+  Scenario: 專案資料載入中時顯示 loading 文字
+    Given 網路較慢，projects 查詢尚未完成
+    Then 頁面標題顯示「載入中… — Kanban」
+    And 不顯示錯誤訊息
+```
+
+---
+
+---
+
+## Feature 15: 工程師 L1 時間分組任務清單
+
+**對應 PRD:** US-016
+**說明:** 工程師 L1 任務清單依緊急度分為 4 個獨立區塊，空的區塊自動隱藏。
+
+```gherkin
+Feature: 工程師 L1 時間分組任務清單
+
+  Background:
+    Given 我以 Developer 或 Admin 身份登入
+    And 我進入工程師 L1 儀表板 "/engineer"
+
+  @happy-path @smoke-test
+  Scenario: 任務按緊急度分為 4 個區塊
+    Given 我有以下任務：卡關任務 1 筆、逾期任務 2 筆、本週到期 3 筆、未來任務 1 筆
+    Then 頁面由上到下顯示 4 個區塊：「卡關任務」→「逾期任務」→「本週到期」→「之後 / 未排程」
+    And 每個區塊標頭右側顯示該區塊任務數量徽章
+
+  @happy-path
+  Scenario: 空的區塊自動隱藏
+    Given 我無卡關任務，無逾期任務，但有本週到期任務 2 筆
+    Then 頁面不顯示「卡關任務」和「逾期任務」區塊
+    And 只顯示「本週到期」和「之後 / 未排程」區塊
+
+  @happy-path
+  Scenario Outline: 任務依截止日落入正確區塊
+    Given 任務截止日為 <deadline>，且非卡關任務
+    Then 任務出現在 <section> 區塊
+
+    Examples:
+      | deadline       | section       |
+      | 昨天（過期）   | 逾期任務      |
+      | 今天           | 本週到期      |
+      | 今天 + 6 天    | 本週到期      |
+      | 今天 + 8 天    | 之後 / 未排程 |
+      | 無截止日       | 之後 / 未排程 |
+```
+
+---
+
+## Feature 16: 工程師 L1 卡關任務醒目提示
+
+**對應 PRD:** US-017
+**說明:** 卡關任務以紅色漸層標頭、pulsing beacon 指示燈、左邊框強調，並在 L1 清單與 L3 詳情顯示卡關原因。
+
+```gherkin
+Feature: 工程師 L1 卡關任務醒目提示
+
+  Background:
+    Given 我以 Developer 或 Admin 身份登入
+
+  @happy-path @smoke-test
+  Scenario: 卡關區塊有醒目的紅色視覺效果
+    Given 我有 1 筆卡關任務（yaml_data.blocked = true）
+    When 我進入工程師 L1 儀表板
+    Then 卡關區塊以紅色漸層標頭顯示，包含 🚨 圖示和「卡關任務 — 無法自行推進」文字
+    And 區塊外框為紅色粗邊框
+
+  @happy-path
+  Scenario: 每個卡關任務列顯示動態信標
+    Given 我有 2 筆卡關任務
+    Then 每筆任務列左側有紅色左邊框（4px）
+    And 每筆任務標題前有 animate-ping 紅色動態信標指示燈
+
+  @happy-path
+  Scenario: 有卡關原因時顯示在標題下方
+    Given 任務 "EC-007" 的 yaml_data.reason = "等待廠商提供測試帳號"
+    And 該任務為卡關狀態（yaml_data.blocked = true）
+    When 我查看工程師 L1 儀表板
+    Then 任務 "EC-007" 標題下方顯示「🔒 等待廠商提供測試帳號」
+
+  @happy-path
+  Scenario: L3 詳情頁獨立顯示卡關原因
+    Given 任務 "EC-007" 的 yaml_data.reason = "等待廠商提供測試帳號"
+    When 我進入 "EC-007" 的 L3 詳情頁
+    Then 頁面顯示「卡關原因」欄位，內容為「🔒 等待廠商提供測試帳號」
+    And 該欄位以紅色背景區塊顯示
+
+  @edge-case
+  Scenario: 無卡關原因時不顯示原因欄
+    Given 任務 "EC-013" 的 yaml_data.blocked = true，但無 reason 欄位
+    When 我查看 L1 清單或 L3 詳情頁
+    Then 不顯示「卡關原因」區塊，無空白欄或錯誤訊息
+```
+
+---
+
+## Feature 17: 工程師 L1 進行中任務統計卡
+
+**對應 PRD:** US-018
+**說明:** 統計區新增「進行中」卡片，改為 4 欄配置，Doing 與 Blocked 任務計數獨立互不重疊。
+
+```gherkin
+Feature: 工程師 L1 進行中任務統計卡
+
+  Background:
+    Given 我以 Developer 或 Admin 身份登入
+    And 我進入工程師 L1 儀表板 "/engineer"
+
+  @happy-path @smoke-test
+  Scenario: 統計區顯示 4 張卡片
+    Then 頁面頂部顯示 4 張統計卡：「進行中」、「待辦」、「逾期」、「卡關」
+
+  @happy-path
+  Scenario: 進行中卡片計數正確且顯示藍色
+    Given 我有 2 筆 status = 'Doing' 且非卡關的任務
+    Then 「進行中」卡片顯示數字 2，卡片呈藍色背景
+
+  @happy-path
+  Scenario: 卡關卡片有 animate-ping 指示燈
+    Given 我有 1 筆卡關任務
+    Then 「卡關」卡片數字左側顯示 animate-ping 紅色動態燈號
+    And 卡片呈紅色背景
+
+  @edge-case
+  Scenario: Doing 且卡關的任務只計入卡關不計入進行中
+    Given 任務 A 的 status = 'Doing' 且 yaml_data.blocked = true
+    Then 「進行中」計數不包含任務 A
+    And 「卡關」計數包含任務 A
+```
+
+---
+
+## Feature 18: 任務截止日相對天數顯示
+
+**對應 PRD:** US-019
+**說明:** 工程師 L1 任務清單的截止日欄改為相對天數（「逾期 N 天」/ 「今天到期！」/ 「N 天後」），由 DeadlineCell 元件封裝。
+
+```gherkin
+Feature: 任務截止日相對天數顯示
+
+  Background:
+    Given 我以 Developer 或 Admin 身份登入
+    And 我進入工程師 L1 儀表板 "/engineer"
+
+  @happy-path @smoke-test
+  Scenario Outline: 截止日依相對天數顯示對應文字與顏色
+    Given 任務截止日為今天偏移 <offset> 天
+    Then 截止日欄顯示 <text>，顏色為 <color>
+
+    Examples:
+      | offset | text       | color    |
+      | -3     | 逾期 3 天  | 紅色     |
+      | 0      | 今天到期！ | 紅色粗體 |
+      | 1      | 明天 (1d)  | 橘色     |
+      | 5      | 5 天後     | 黃色     |
+      | 14     | 14 天後    | 灰色     |
+
+  @edge-case
+  Scenario: 無截止日顯示破折號
+    Given 任務無截止日（deadline 為 null）
+    Then 截止日欄顯示「—」，無報錯
+```
+
+---
+
+**文件版本**：v1.2
+**最後更新**：2026-06-08
 **狀態**：草稿（Draft）
