@@ -17,17 +17,23 @@ import yaml
 
 
 def get_supabase_client():
-    from supabase import create_client  # lazy import — not needed by parser unit tests
+    # Use postgrest-py directly so the service role key is always sent in
+    # Authorization headers. supabase-py v2.x's .postgrest property resets
+    # auth on access, causing RLS to block writes even with service_role key.
+    from postgrest import SyncPostgrestClient
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     if not url or not key:
         print("ERROR: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set", file=sys.stderr)
         sys.exit(1)
-    client = create_client(url, key)
-    # supabase-py v2.x does not automatically forward the service role key to
-    # the PostgREST client — set it explicitly so RLS is bypassed.
-    client.postgrest.auth(key)
-    return client
+    return SyncPostgrestClient(
+        f"{url}/rest/v1",
+        headers={
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+        },
+        schema="public",
+    )
 
 
 # ──────────────────────────────────────────
