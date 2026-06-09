@@ -1,0 +1,48 @@
+name: WBS → Supabase Sync (Reusable)
+
+on:
+  workflow_call:
+    secrets:
+      SUPABASE_URL:
+        required: true
+      SUPABASE_SERVICE_ROLE_KEY:
+        required: true
+      GH_PAT:
+        required: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout calling repo
+        uses: actions/checkout@v4
+
+      - name: Checkout Node_PM scripts
+        uses: actions/checkout@v4
+        with:
+          repository: benben83922/Node_PM
+          token: ${{ secrets.GH_PAT }}
+          path: _node_pm
+          sparse-checkout: |
+            scripts/sync_wbs_to_supabase.py
+            scripts/requirements_supabase.txt
+          sparse-checkout-cone-mode: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: _node_pm/scripts/requirements_supabase.txt
+
+      - name: Install dependencies
+        run: pip install -r _node_pm/scripts/requirements_supabase.txt
+
+      - name: Sync WBS to Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python _node_pm/scripts/sync_wbs_to_supabase.py

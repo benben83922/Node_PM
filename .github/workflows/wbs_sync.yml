@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r scripts/requirements_supabase.txt
 
+      - name: Run parser tests
+        run: python -m pytest scripts/test_sync_parser.py -v
+
       - name: Sync WBS to Supabase
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
