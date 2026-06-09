@@ -23,7 +23,11 @@ def get_supabase_client():
     if not url or not key:
         print("ERROR: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set", file=sys.stderr)
         sys.exit(1)
-    return create_client(url, key)
+    client = create_client(url, key)
+    # supabase-py v2.x does not automatically forward the service role key to
+    # the PostgREST client — set it explicitly so RLS is bypassed.
+    client.postgrest.auth(key)
+    return client
 
 
 # ──────────────────────────────────────────
